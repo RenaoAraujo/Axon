@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Calibração (4 pontos)</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+	<style>
+		body { padding: 16px; }
+		.calib-header { display:flex; align-items:center; gap:12px; margin-bottom: 12px; }
+		.calib-instructions { color: #9fb0c0; margin-bottom: 8px; }
+		#frame { max-width: 100%; width: 100%; border: 1px solid #1b2436; border-radius: 8px; display:block; }
+		.points { margin-top: 8px; color: #9fb0c0; }
+		.actions { display:flex; gap:8px; margin-top: 12px; }
+		button.small { font-size: 14px; padding: 8px 12px; }
+		.badge.info { background: #24314b; color: #b6c5d8; }
+	</style>
+</head>
+<body>
+	<div class="calib-header">
+		<h2 style="margin:0;">Calibração da homografia (mesa projetada)</h2>
+		<span id="calib-status" class="badge info">Carregando...</span>
+	</div>
+	<div class="calib-instructions">
+		1) Garanta que a UI principal esteja projetada ocupando a área-alvo da mesa.<br />
+		2) Clique sobre a IMAGEM da CÂMERA nos 4 cantos da área projetada, na ordem: topo-esquerda, topo-direita, base-direita, base-esquerda.<br />
+		3) Envie os pontos. Você pode refazer se necessário.
+	</div>
+	<img id="frame" src="/frame.jpg" alt="frame" />
+	<div class="points">
+		Pontos selecionados: <span id="pts">0</span> / 4
+	</div>
+	<div class="actions">
+		<button id="btn-reset" class="small">Limpar</button>
+		<button id="btn-send" class="small">Enviar</button>
+		<button id="btn-del" class="small" style="margin-left:auto;">Apagar calibração</button>
+	</div>
+
+	<script>
+		const statusEl = document.getElementById('calib-status');
+		const img = document.getElementById('frame');
+		const ptsEl = document.getElementById('pts');
+		const points = [];
+
+		function refreshStatus() {
+			fetch('/api/calibration').then(r=>r.json()).then(j=>{
+				statusEl.textContent = j.has_homography ? 'Calibrado' : 'Sem calibração';
+				statusEl.className = j.has_homography ? 'badge ok' : 'badge info';
+			}).catch(()=>{ statusEl.textContent='Erro'; statusEl.className='badge'; });
+		}
+		refreshStatus();
+
+		// Atualiza frame periodicamente (sem manter conexões)
+		function refreshFrame() {
+			img.src = '/frame.jpg?ts=' + Date.now();
+		}
+		setInterval(refreshFrame, 500);
+
+		img.addEventListener('click', (e) => {
+			if (points.length >= 4) return;
+			const rect = img.getBoundingClientRect();
+			// coordenadas relativas ao elemento
+			const rx = e.clientX - rect.left;
+			const ry = e.clientY - rect.top;
+			// Ajusta para pixels reais do frame (naturalWidth/Height)
+			const nx = rx / rect.width;
+			const ny = ry / rect.height;
+			const px = nx * img.naturalWidth;
+			const py = ny * img.naturalHeight;
+			points.push({ x: px, y: py });
+			ptsEl.textContent = String(points.length);
+		});
+
+		document.getElementById('btn-reset').onclick = () => {
+			points.length = 0;
+			ptsEl.textContent = '0';
+		};
+		document.getElementById('btn-send').onclick = async () => {
+			if (points.length !== 4) {
+				alert('Selecione exatamente 4 pontos na ordem indicada.');
+				return;
+			}
+			try {
+				const r = await fetch('/api/calibration', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ camera_points: points })
+				});
+				const j = await r.json();
+				if (!r.ok) throw new Error(j.error || 'Falha');
+				alert('Homografia salva com sucesso.');
+				refreshStatus();
+			} catch (e) {
+				alert('Erro: ' + e.message);
+			}
+		};
+		document.getElementById('btn-del').onclick = async () => {
+			try {
+				const r = await fetch('/api/calibration', { method: 'DELETE' });
+				if (!r.ok) throw new Error('Falha');
+				alert('Calibração removida.');
+				refreshStatus();
+			} catch (e) {
+				alert('Erro: ' + e.message);
+			}
+		};
+	</script>
+</body>
+</html>
+
+

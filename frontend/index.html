@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Jarvis Projection UI</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+	<script defer src="/static/app.js"></script>
+</head>
+<body>
+	<div id="hero" class="sophia-hero">
+		<button id="sophia-btn" class="sophia-btn" aria-expanded="false">Axon</button>
+		<div id="orbit-ring" class="orbit-ring" hidden></div>
+		<div id="sophia-wheel" class="sophia-wheel" hidden>
+			<button class="wheel-item" data-action="calibration">
+				<span class="ring"></span><span class="label">Calibrar</span>
+			</button>
+			<button class="wheel-item" data-action="scanner">
+				<span class="ring"></span><span class="label">Scanner</span>
+			</button>
+			<button class="wheel-item" data-action="home">
+				<span class="ring"></span><span class="label">Home</span>
+			</button>
+			<button class="wheel-item" data-action="sistema">
+				<span class="ring"></span><span class="label">Sistema</span>
+			</button>
+		</div>
+	</div>
+
+	<div id="app">
+		<header class="app-header">
+			<h1>Jarvis Projection</h1>
+			<div class="status">
+				<span id="ws-status" class="badge">Conectando...</span>
+			</div>
+		</header>
+
+		<main id="screens">
+			<section class="screen active" id="screen-home" data-screen="home">
+				<h2>Home</h2>
+				<div class="buttons">
+					<button class="nav" data-target="media">Mídia</button>
+					<button class="nav" data-target="sala">Sala</button>
+					<button class="nav" data-target="sistema">Sistema</button>
+				</div>
+			</section>
+
+			<section class="screen" id="screen-media" data-screen="media">
+				<h2>Mídia</h2>
+				<div class="buttons">
+					<button class="nav" data-target="home">Voltar</button>
+					<button>Play</button>
+					<button>Pause</button>
+				</div>
+			</section>
+
+			<section class="screen" id="screen-sala" data-screen="sala">
+				<h2>Sala</h2>
+				<div class="buttons">
+					<button class="nav" data-target="home">Voltar</button>
+					<button>Luz On</button>
+					<button>Luz Off</button>
+				</div>
+			</section>
+
+			<section class="screen" id="screen-sistema" data-screen="sistema">
+				<h2>Sistema</h2>
+				<div class="buttons">
+					<button class="nav" data-target="home">Voltar</button>
+					<button>Configurações</button>
+					<button>Status</button>
+				</div>
+			</section>
+		</main>
+	</div>
+
+	<canvas id="det-canvas"></canvas>
+	<div id="tap-marker" class="tap-marker" hidden></div>
+</body>
+</html>
+
+

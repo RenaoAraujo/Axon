@@ -1,0 +1,273 @@
+:root {
+	--bg: #0b0f1a;
+	--fg: #e8ecf1;
+	--muted: #7b8594;
+	--accent: #4cc9f0;
+	--accent-2: #f72585;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--fg);
+	font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* Sophia hero */
+.sophia-hero {
+	min-height: 100vh;
+	display: grid;
+	align-content: center;
+	justify-items: center;
+	gap: 40px;
+	background: radial-gradient(1200px 600px at 50% 20%, rgba(76,201,240,0.08), transparent),
+	            radial-gradient(1000px 600px at 10% 80%, rgba(247,37,133,0.07), transparent);
+	position: relative; /* para posicionar a roda sobre o botão */
+}
+.sophia-btn {
+	all: unset;
+	cursor: pointer;
+	display: inline-block;
+	padding: 10px 18px;
+	border-radius: 10px;
+	font-size: clamp(18px, 2.6vw, 26px); /* menor que antes */
+	letter-spacing: 3px;
+	text-transform: uppercase;
+	font-weight: 800;
+	color: #bfefff;
+	background: transparent; /* sem círculo */
+	border: none; /* sem borda circular */
+	transition: transform 0.15s ease, text-shadow 0.3s ease, color 0.3s ease;
+	position: relative;
+	z-index: 2; /* acima da roda para continuar clicável */
+}
+.sophia-btn:hover { transform: translateY(-1px); text-shadow: 0 0 18px rgba(76,201,240,0.45); color: #eaf9ff; }
+.sophia-btn:active { transform: translateY(0) scale(0.98); }
+
+/* Quando aberto: Sophia cresce e vira circular com anel animado */
+.sophia-btn[aria-expanded="true"] {
+	font-size: clamp(40px, 6vw, 72px); /* maior para destaque */
+	color: #eaf9ff;
+	text-shadow: 0 0 18px rgba(76,201,240,0.45);
+}
+
+/* Roda de seleção */
+.sophia-wheel {
+	position: absolute; /* centra sobre o botão principal */
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(70vmin, 520px);
+	height: min(70vmin, 520px);
+	pointer-events: none; /* não bloquear clique no centro */
+	z-index: 1;
+}
+
+/* Anel grande que orbita passando pelas opções */
+.orbit-ring {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	pointer-events: none;
+	z-index: 0; /* atrás dos itens da roda */
+	--ring-width: 8px; /* anel mais fino */
+}
+.orbit-ring::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background: conic-gradient(from 0deg, #4cc9f0 0%, #f72585 50%, #4cc9f0 100%);
+	-webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--ring-width)), #000 calc(100% - var(--ring-width)));
+	        mask: radial-gradient(farthest-side, transparent calc(100% - var(--ring-width)), #000 calc(100% - var(--ring-width)));
+	animation: spin 6.5s linear infinite;
+	opacity: 0.95;
+	filter: blur(0.3px);
+}
+.wheel-item {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%) scale(0.8);
+	transition: transform 0.35s cubic-bezier(.2,.8,.2,1), opacity 0.35s ease;
+	opacity: 0;
+	pointer-events: auto; /* itens continuam clicáveis */
+}
+.sophia-wheel.open .wheel-item {
+	opacity: 1;
+}
+.wheel-item .ring {
+	position: absolute;
+	inset: -2px;
+	border-radius: 50%;
+	background: conic-gradient(from 0deg, #4cc9f0, #f72585, #4cc9f0);
+	filter: blur(0.5px);
+	animation: spin 6s linear infinite;
+	opacity: 0.85;
+}
+.wheel-item {
+	width: clamp(90px, 12vw, 140px);
+	aspect-ratio: 1/1;
+	border-radius: 50%;
+	background: #0f1726;
+	border: 1px solid #1b2436;
+	display: grid;
+	place-items: center;
+	color: var(--fg);
+}
+.wheel-item::after {
+	content: '';
+	position: absolute;
+	inset: 6px;
+	border-radius: 50%;
+	background: #0b1220;
+}
+.sophia-wheel.open .wheel-item {
+	/* quando aberto, os botões ficam menores */
+	width: clamp(52px, 6.5vw, 84px);
+}
+
+/* Anel interno “passando por dentro” */
+.wheel-item .inner {
+	display: none;
+}
+.wheel-item .label {
+	position: relative;
+	z-index: 2;
+	font-size: 11px;
+}
+.circle-btn {
+	position: relative;
+	width: clamp(120px, 18vw, 220px);
+	aspect-ratio: 1 / 1;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	background: #0f1726;
+	border: 1px solid #1b2436;
+	color: var(--fg);
+	cursor: pointer;
+	transition: transform 0.15s ease, box-shadow 0.3s ease;
+	box-shadow: 0 0 0 0 rgba(76,201,240,0.0);
+	overflow: hidden;
+}
+.circle-btn .label {
+	position: relative;
+	z-index: 2;
+	font-size: clamp(14px, 2.5vw, 20px);
+}
+.circle-btn .ring {
+	position: absolute;
+	inset: -2px;
+	border-radius: 50%;
+	background: conic-gradient(from 0deg, #4cc9f0, #f72585, #4cc9f0);
+	filter: blur(0.5px);
+	animation: spin 6s linear infinite;
+	opacity: 0.8;
+}
+.circle-btn::after {
+	content: '';
+	position: absolute;
+	inset: 6px;
+	border-radius: 50%;
+	background: #0b1220;
+	z-index: 1;
+}
+.circle-btn:hover { transform: translateY(-2px); }
+.circle-btn:active { transform: translateY(0) scale(0.98); }
+.circle-btn:hover { box-shadow: 0 0 24px 0 rgba(76,201,240,0.25); }
+.circle-btn:focus-visible { outline: 2px solid #4cc9f0; outline-offset: 4px; }
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+.app-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 24px;
+	border-bottom: 1px solid #1b2436;
+	background: #0e1422;
+	position: sticky;
+	top: 0;
+}
+
+.badge {
+	padding: 4px 10px;
+	background: #26334d;
+	border-radius: 999px;
+	color: var(--muted);
+	font-size: 12px;
+}
+.badge.ok {
+	background: #143d2a;
+	color: #9de6b0;
+}
+
+#screens {
+	padding: 24px;
+	min-height: calc(100vh - 72px);
+	display: grid;
+}
+
+.screen {
+	display: none;
+	align-content: start;
+	gap: 24px;
+	padding: 24px;
+	border: 1px solid #1b2436;
+	border-radius: 16px;
+	background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.0));
+}
+.screen.active { display: grid; }
+.screen h2 { margin: 0 0 8px; color: var(--accent); }
+
+.buttons {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(180px, 1fr));
+	gap: 16px;
+}
+
+button {
+	all: unset;
+	cursor: pointer;
+	padding: 14px 18px;
+	border-radius: 12px;
+	background: #10182a;
+	border: 1px solid #1b2436;
+	text-align: center;
+	color: var(--fg);
+	transition: transform 0.04s ease, background 0.2s ease, border-color 0.2s ease;
+}
+button:hover { transform: translateY(-1px); }
+button:active { transform: translateY(0px) scale(0.99); }
+button.nav { background: #0f1a2d; border-color: #223150; }
+button.nav:hover { background: #13213d; }
+
+.tap-marker {
+	position: fixed;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	border: 2px solid var(--accent-2);
+	box-shadow: 0 0 0 4px rgba(247,37,133,0.25);
+	pointer-events: none;
+	transform: scale(1);
+	transition: transform 0.1s ease;
+}
+
+#det-canvas {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100vw;
+	height: 100vh;
+	pointer-events: none;
+}
+
+
