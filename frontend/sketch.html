@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Sketch</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+	<style>
+		/* Layout da página Sketch (usa a paleta existente) */
+		.screen.flat { padding: 16px; }
+		.toolbox {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin: 8px 0 6px; /* menor para ampliar a área de desenho */
+			flex-wrap: wrap;
+		}
+		.tool {
+			all: unset;
+			cursor: pointer;
+			padding: 10px 14px;
+			border-radius: 12px;
+			background: #10182a;
+			border: 1px solid #1b2436;
+			color: #e8ecf1;
+			font-size: 13px;
+		}
+		.tool.active { background: #13213d; border-color: #223150; }
+		.tool:focus-visible { outline: 2px solid #4cc9f0; outline-offset: 2px; }
+		.spacer { flex: 1; }
+		.canvas-wrap {
+			position: relative;
+			border: 1px dashed #1b2436;
+			border-radius: 12px;
+			overflow: hidden;
+		}
+		#sketch {
+			display: block;
+			width: 100%;
+			height: calc(100vh - 140px); /* mais alto para ampliar o desenho */
+			background: #0b0f1a;
+			cursor: crosshair;
+		}
+		/* Menu compacto de formas */
+		.menu { position: relative; }
+		.menu-panel {
+			position: absolute;
+			top: calc(100% + 6px);
+			left: 0;
+			display: none;
+			background: #0f1726;
+			border: 1px solid #1b2436;
+			border-radius: 12px;
+			padding: 8px;
+			gap: 6px;
+			z-index: 10;
+			box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+		}
+		.menu.open .menu-panel { display: flex; }
+		.menu-panel .tool { padding: 8px 10px; }
+
+		/* Indicadores de seleção */
+		.handle {
+			position: absolute;
+			width: 8px; height: 8px;
+			border-radius: 50%;
+			background: #4cc9f0;
+			border: 1px solid #0b1220;
+			pointer-events: auto;
+			cursor: pointer;
+		}
+		.handle.rot {
+			width: 12px; height: 12px;
+			background: #f72585;
+			border-color: #310a1b;
+			cursor: grab;
+		}
+	</style>
+</head>
+<body>
+	<main id="screens">
+		<section class="screen flat active" data-screen="sketch">
+			<h2 class="vibrant-text">Sketch</h2>
+			<div class="scanner-bar">
+				<a href="/" class="circle-btn" title="Voltar">
+					<span class="ring"></span>
+					<span class="label">Voltar</span>
+				</a>
+				<div class="spacer"></div>
+				<button id="btn-export" class="tool">Exportar PNG</button>
+			</div>
+
+			<div class="toolbox">
+				<div class="menu" id="shapes-menu">
+					<button class="tool" id="btn-shapes">Formas ▾</button>
+					<div class="menu-panel" id="menu-shapes">
+						<button class="tool" data-tool="select">Selecionar (V)</button>
+						<button class="tool" data-tool="pen">Caneta (P)</button>
+						<button class="tool" data-tool="line">Linha (L)</button>
+						<button class="tool" data-tool="rect">Retângulo (R)</button>
+						<button class="tool" data-tool="ellipse">Círculo (C)</button>
+					</div>
+				</div>
+				<button class="tool active" id="btn-snap">Snap (S)</button>
+				<button class="tool active" id="btn-autoshape">Autoforma (A)</button>
+				<div class="spacer"></div>
+				<button class="tool" id="btn-undo">Undo (Ctrl+Z)</button>
+				<button class="tool" id="btn-redo">Redo (Ctrl+Y)</button>
+				<button class="tool" id="btn-clear">Limpar</button>
+			</div>
+
+			<div class="canvas-wrap">
+				<canvas id="sketch"></canvas>
+				<div id="handles"></div>
+			</div>
+		</section>
+	</main>
+
+	<script defer src="/static/sketch.js"></script>
+	<script>
+		// Toggle do menuzinho de formas
+		(function(){
+			const menu = document.getElementById('shapes-menu');
+			const btn = document.getElementById('btn-shapes');
+			if (!menu || !btn) return;
+			btn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				menu.classList.toggle('open');
+			});
+			document.addEventListener('click', (e) => {
+				if (!menu.contains(e.target)) menu.classList.remove('open');
+			});
+		})();
+	</script>
+</body>
+</html>
+
+

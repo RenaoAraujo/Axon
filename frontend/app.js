@@ -189,24 +189,30 @@
 			}
 			const action = btn.getAttribute('data-action');
 			if (action === 'calibration') {
+				// Ao navegar para calibração, a página própria gerencia start/stop
+				// Aqui apenas navegamos
 				window.location.href = '/calibration';
 			} else if (action === 'scanner') {
-				if (hero && appRoot) {
-					hero.style.display = 'none';
-					appRoot.style.display = '';
-				}
+				// Abrir página dedicada do Scanner
+				window.location.href = '/scanner';
 			} else if (action === 'home') {
 				const home = document.querySelector('.screen[data-screen="home"]');
 				if (home) {
 					document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 					home.classList.add('active');
 				}
+				// Parar scanner ao sair
+				try { fetch('/api/scanner/stop', { method: 'POST' }); } catch {}
 			} else if (action === 'sistema') {
 				const sys = document.querySelector('.screen[data-screen="sistema"]');
 				if (sys) {
 					document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 					sys.classList.add('active');
 				}
+				// Parar scanner ao sair
+				try { fetch('/api/scanner/stop', { method: 'POST' }); } catch {}
+			} else if (action === 'sketch') {
+				window.location.href = '/sketch';
 			}
 		});
 	}
@@ -373,6 +379,7 @@
 			};
 		};
 	})();
+
 })(); 
 
 

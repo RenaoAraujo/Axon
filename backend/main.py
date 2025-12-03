@@ -124,24 +124,9 @@ async def on_startup() -> None:
 	_event_queue = asyncio.Queue()
 	_queue_worker_task = asyncio.create_task(_event_queue_worker(_event_queue))
 
-	# Inicializa o detector em modo teste (gera toques sintéticos)
-	_touch_detector = TouchDetector(
-		on_touch=lambda ev: asyncio.run_coroutine_threadsafe(_event_queue.put(ev), loop),
-		camera_index=0,
-		test_mode=False,
-	)
-	_touch_detector.start()
-
-	# Detector de objetos (YOLO). Baixa/usa modelo default no primeiro uso.
-	_object_detector = ObjectDetector(
-		on_event=lambda msg: asyncio.run_coroutine_threadsafe(_event_queue.put(msg), loop),
-		camera_index=0,
-		model_name="yolov8n.pt",
-		min_confidence=0.5,
-		target_fps=5.0,
-		enabled=True,
-	)
-	_object_detector.start()
+	# Não inicializa câmera no startup. Só quando o usuário acionar o "Scanner".
+	_touch_detector = None
+	_object_detector = None
 	# Carrega homografia, se existir
 	global _H
 	_H = load_homography()
@@ -184,6 +169,18 @@ async def calibration_page() -> FileResponse:
 	return FileResponse(str(page))
 
 
+@app.get("/scanner")
+async def scanner_page() -> FileResponse:
+	page = FRONTEND_DIR / "scanner.html"
+	return FileResponse(str(page))
+
+
+@app.get("/sketch")
+async def sketch_page() -> FileResponse:
+	page = FRONTEND_DIR / "sketch.html"
+	return FileResponse(str(page))
+
+
 @app.get("/api/calibration")
 async def calibration_status():
 	return JSONResponse({"has_homography": _H is not None})
@@ -220,3 +217,73 @@ async def calibration_clear():
 	clear_homography()
 	return JSONResponse({"ok": True})
 
+
+# Scanner: controla uso da câmera sob demanda
+@app.get("/api/scanner/status")
+async def scanner_status():
+	return JSONResponse({
+		"touch_running": _touch_detector is not None,
+		"detector_running": _object_detector is not None
+	})
+
+
+@app.post("/api/scanner/start")
+async def scanner_start(payload: Optional[dict] = None):
+	"""
+	Inicia os detectores que usam câmera somente quando solicitado.
+	Body opcional:
+	{
+		"camera_index": 0,
+		"with_touch": true|false (padrão: false)
+	}
+	"""
+	global _touch_detector, _object_detector, _event_queue
+	try:
+		if _event_queue is None:
+			_event_queue = asyncio.Queue()
+		camera_index = 0
+		with_touch = False
+		if isinstance(payload, dict):
+			if "camera_index" in payload:
+				camera_index = int(payload.get("camera_index") or 0)
+			if "with_touch" in payload:
+				with_touch = bool(payload.get("with_touch"))
+		loop = asyncio.get_running_loop()
+		# Inicia detector de objetos se ainda não estiver rodando
+		if _object_detector is None:
+			_object_detector = ObjectDetector(
+				on_event=lambda msg: asyncio.run_coroutine_threadsafe(_event_queue.put(msg), loop),
+				camera_index=camera_index,
+				model_name="yolov8n.pt",
+				min_confidence=0.5,
+				target_fps=5.0,
+				enabled=True,
+			)
+			_object_detector.start()
+		# Inicia touch detector opcionalmente
+		if with_touch and _touch_detector is None:
+			_touch_detector = TouchDetector(
+				on_touch=lambda ev: asyncio.run_coroutine_threadsafe(_event_queue.put(ev), loop),
+				camera_index=camera_index,
+				test_mode=False,
+			)
+			_touch_detector.start()
+		return JSONResponse({"ok": True})
+	except Exception as e:
+		return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/scanner/stop")
+async def scanner_stop():
+	"""Para e libera a câmera."""
+	global _touch_detector, _object_detector
+	try:
+		if _touch_detector is not None:
+			_touch_detector.stop()
+			_touch_detector = None
+		if _object_detector is not None:
+			_object_detector.stop()
+			_object_detector = None
+		return JSONResponse({"ok": True})
+	except Exception as e:
+		return JSONResponse({"error": str(e)}, status_code=500)

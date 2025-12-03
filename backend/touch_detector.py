@@ -8,6 +8,14 @@ try:
 except Exception:
 	cv2 = None  # OpenCV pode não estar disponível no momento da instalação
 
+# Silencia logs ruidosos do OpenCV, evitando mensagens de backend no Windows
+if cv2 is not None:
+	try:
+		if hasattr(cv2, "utils") and hasattr(cv2.utils, "logging"):
+			cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_SILENT)
+	except Exception:
+		pass
+
 
 @dataclass
 class TouchEvent:
@@ -71,7 +79,8 @@ class TouchDetector:
 			return
 		# Preferir DirectShow, com fallback para MSMF/ANY no Windows
 		cap = None
-		for backend in (getattr(cv2, "CAP_DSHOW", 700), getattr(cv2, "CAP_MSMF", 1400), getattr(cv2, "CAP_ANY", 0)):
+		# Preferir MSMF primeiro no Windows (DSHOW pode falhar por índice em alguns sistemas)
+		for backend in (getattr(cv2, "CAP_MSMF", 1400), getattr(cv2, "CAP_DSHOW", 700), getattr(cv2, "CAP_ANY", 0)):
 			try:
 				cap_try = cv2.VideoCapture(self._camera_index, backend)
 				if cap_try.isOpened():
@@ -83,6 +92,12 @@ class TouchDetector:
 					cap_try.release()
 				except Exception:
 					pass
+		# Fallback final sem especificar backend
+		if cap is None:
+			try:
+				cap = cv2.VideoCapture(self._camera_index)
+			except Exception:
+				cap = None
 		if cap is None:
 			return
 		try:

@@ -42,6 +42,22 @@
 		const ptsEl = document.getElementById('pts');
 		const points = [];
 
+		// Garante que a câmera esteja ativa enquanto a página de calibração estiver aberta
+		(async () => {
+			try {
+				await fetch('/api/scanner/start', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ with_touch: false })
+				});
+			} catch {}
+		})();
+		window.addEventListener('beforeunload', () => {
+			try { navigator.sendBeacon && navigator.sendBeacon('/api/scanner/stop'); } catch {}
+			// fallback básico
+			try { fetch('/api/scanner/stop', { method: 'POST', keepalive: true }); } catch {}
+		});
+
 		function refreshStatus() {
 			fetch('/api/calibration').then(r=>r.json()).then(j=>{
 				statusEl.textContent = j.has_homography ? 'Calibrado' : 'Sem calibração';

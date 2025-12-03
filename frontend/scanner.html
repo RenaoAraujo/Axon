@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Scanner</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+	<main id="screens">
+		<section class="screen flat active" data-screen="scanner">
+			<h2 class="vibrant-text">Scanner</h2>
+			<div class="scanner-bar">
+				<button id="btn-back-selection" class="circle-btn" aria-label="Voltar para seleção" title="Voltar para seleção">
+					<span class="ring"></span>
+					<span class="label">Voltar</span>
+				</button>
+				<div class="spacer"></div>
+				<button id="btn-scan" class="circle-btn" aria-pressed="false">
+					<span class="ring"></span>
+					<span class="label">Escanear</span>
+				</button>
+
+		</section>
+	</main>
+
+	<canvas id="det-canvas"></canvas>
+
+	<script>
+		// Canvas de detecção
+		const detCanvas = document.getElementById('det-canvas');
+		const dctx = detCanvas.getContext('2d');
+		function fitCanvas() {
+			const ratio = window.devicePixelRatio || 1;
+			detCanvas.width = Math.floor(window.innerWidth * ratio);
+			detCanvas.height = Math.floor(window.innerHeight * ratio);
+			detCanvas.style.width = `${window.innerWidth}px`;
+			detCanvas.style.height = `${window.innerHeight}px`;
+			dctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+		}
+		window.addEventListener('resize', fitCanvas);
+		fitCanvas();
+
+		let ws;
+		function connectWs() {
+			const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+			ws = new WebSocket(`${proto}://${location.host}/ws`);
+			ws.onopen = () => {};
+			ws.onclose = () => { setTimeout(connectWs, 1000); };
+			ws.onerror = () => {};
+			ws.onmessage = (evt) => {
+				try {
+					const msg = JSON.parse(evt.data);
+					if (msg.type === 'detections' && Array.isArray(msg.objects)) {
+						renderDetections(msg.objects_mapped && msg.projector_mapped ?
+							msg.objects_mapped.map(o => ({ label:o.label, confidence:o.confidence, x1:o.cx, y1:o.cy, x2:o.cx, y2:o.cy })) :
+							msg.objects);
+					}
+				} catch {}
+			};
+		}
+		connectWs();
+
+		let lastDetectionsAt = 0;
+		function renderDetections(objects) {
+			lastDetectionsAt = performance.now();
+			dctx.clearRect(0, 0, detCanvas.width, detCanvas.height);
+			dctx.lineWidth = 3;
+			dctx.font = '12px system-ui';
+			objects.forEach(o => {
+				const x1 = Math.max(0, Math.min(1, o.x1)) * window.innerWidth;
+				const y1 = Math.max(0, Math.min(1, o.y1)) * window.innerHeight;
+				const x2 = Math.max(0, Math.min(1, o.x2)) * window.innerWidth;
+				const y2 = Math.max(0, Math.min(1, o.y2)) * window.innerHeight;
+				const w = Math.max(0, x2 - x1);
+				const h = Math.max(0, y2 - y1);
+				const cx = x1 + w / 2;
+				const cy = y1 + h / 2;
+				let r = Math.max(w, h) / 2;
+				if (w === 0 && h === 0) r = Math.max(16, Math.min(window.innerWidth, window.innerHeight) * 0.03);
+				const color = '#4cc9f0';
+				dctx.beginPath();
+				dctx.strokeStyle = color;
+				dctx.arc(cx, cy, r, 0, Math.PI * 2);
+				dctx.stroke();
+				const text = `${o.label} ${(o.confidence * 100).toFixed(0)}%`;
+				const pad = 4;
+				const tw = dctx.measureText(text).width + pad * 2;
+				const th = 16 + pad * 2;
+				const tx = Math.max(0, Math.min(window.innerWidth - tw, cx - tw / 2));
+				const ty = Math.max(0, cy - r - th - 6);
+				dctx.fillStyle = 'rgba(14,20,34,0.9)';
+				dctx.fillRect(tx, ty, tw, th);
+				dctx.fillStyle = '#e8ecf1';
+				dctx.fillText(text, tx + pad, ty + 12 + pad);
+			});
+		}
+		function clearIfStale() {
+			const now = performance.now();
+			if (now - lastDetectionsAt > 800) dctx.clearRect(0, 0, detCanvas.width, detCanvas.height);
+			requestAnimationFrame(clearIfStale);
+		}
+		requestAnimationFrame(clearIfStale);
+
+		// Controles
+		const btnScan = document.getElementById('btn-scan');
+		const btnBackSel = document.getElementById('btn-back-selection');
+		btnScan.addEventListener('click', async () => {
+			try {
+				btnScan.disabled = true;
+				await fetch('/api/scanner/start', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ with_touch: false })
+				});
+			} catch {}
+			setTimeout(() => { btnScan.disabled = false; }, 600);
+		});
+		btnBackSel.addEventListener('click', async () => {
+			try { await fetch('/api/scanner/stop', { method: 'POST' }); } catch {}
+			window.location.href = '/';
+		});
+		window.addEventListener('beforeunload', () => {
+			try { navigator.sendBeacon && navigator.sendBeacon('/api/scanner/stop'); } catch {}
+			try { fetch('/api/scanner/stop', { method: 'POST', keepalive: true }); } catch {}
+		});
+	</script>
+</body>
+</html>
+
+

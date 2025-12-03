@@ -13,6 +13,15 @@ try:
 except Exception:
 	cv2 = None
 
+# Silencia logs ruidosos do OpenCV (quando disponível), útil para mensagens de backends no Windows
+if cv2 is not None:
+	try:
+		# Preferimos SILENT para ocultar mensagens como "DSHOW ... can't be used to capture by index"
+		if hasattr(cv2, "utils") and hasattr(cv2.utils, "logging"):
+			cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_SILENT)
+	except Exception:
+		pass
+
 
 @dataclass
 class DetectedObject:
@@ -76,7 +85,8 @@ class ObjectDetector:
 			return
 		# Tenta abrir com preferências de backend no Windows
 		cap = None
-		for backend in (getattr(cv2, "CAP_DSHOW", 700), getattr(cv2, "CAP_MSMF", 1400), getattr(cv2, "CAP_ANY", 0)):
+		# Preferir MSMF primeiro no Windows, pois DSHOW pode falhar por índice em alguns sistemas
+		for backend in (getattr(cv2, "CAP_MSMF", 1400), getattr(cv2, "CAP_DSHOW", 700), getattr(cv2, "CAP_ANY", 0)):
 			try:
 				cap = cv2.VideoCapture(self._camera_index, backend)
 				if cap.isOpened():
@@ -89,6 +99,12 @@ class ObjectDetector:
 						cap.release()
 				except Exception:
 					pass
+				cap = None
+		# Fallback final: tentar sem especificar backend
+		if cap is None or not cap.isOpened():
+			try:
+				cap = cv2.VideoCapture(self._camera_index)
+			except Exception:
 				cap = None
 		if cap is None or not cap.isOpened():
 			return

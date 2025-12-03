@@ -141,7 +141,7 @@ body {
 }
 .circle-btn {
 	position: relative;
-	width: clamp(120px, 18vw, 220px);
+	width: clamp(96px, 14vw, 180px);
 	aspect-ratio: 1 / 1;
 	border-radius: 50%;
 	display: grid;
@@ -227,6 +227,11 @@ body {
 .screen.active { display: grid; }
 .screen h2 { margin: 0 0 8px; color: var(--accent); }
 
+.screen.flat {
+	border: none;
+	background: transparent;
+}
+
 .buttons {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(180px, 1fr));
@@ -268,6 +273,27 @@ button.nav:hover { background: #13213d; }
 	width: 100vw;
 	height: 100vh;
 	pointer-events: none;
+}
+
+.scanner-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.scanner-bar .spacer {
+	flex: 1;
+}
+
+.screen[data-screen="scanner"] .scanner-bar {
+	margin-top: 96px;
+}
+
+.vibrant-text {
+	background: linear-gradient(90deg, #4cc9f0 0%, #f72585 50%, #4cc9f0 100%);
+	-webkit-background-clip: text;
+	        background-clip: text;
+	color: transparent;
+	text-shadow: 0 0 12px rgba(76,201,240,0.25);
 }
 
 
