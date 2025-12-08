@@ -181,6 +181,36 @@ async def sketch_page() -> FileResponse:
 	return FileResponse(str(page))
 
 
+@app.get("/planner")
+async def planner_page() -> FileResponse:
+	page = FRONTEND_DIR / "planner.html"
+	return FileResponse(str(page))
+
+
+@app.get("/pcb")
+async def pcb_page() -> FileResponse:
+	page = FRONTEND_DIR / "pcb.html"
+	return FileResponse(str(page))
+
+
+@app.get("/notes")
+async def notes_page() -> FileResponse:
+	page = FRONTEND_DIR / "notes.html"
+	return FileResponse(str(page))
+
+
+@app.get("/projects")
+async def projects_page() -> FileResponse:
+	page = FRONTEND_DIR / "projects.html"
+	return FileResponse(str(page))
+
+
+@app.get("/inventory")
+async def inventory_page() -> FileResponse:
+	page = FRONTEND_DIR / "inventory.html"
+	return FileResponse(str(page))
+
+
 @app.get("/api/calibration")
 async def calibration_status():
 	return JSONResponse({"has_homography": _H is not None})

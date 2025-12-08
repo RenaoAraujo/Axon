@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>Jarvis Projection UI</title>
+	<title>Axon</title>
 	<link rel="stylesheet" href="/static/styles.css" />
 	<script defer src="/static/app.js"></script>
 </head>
@@ -18,16 +18,26 @@
 			<button class="wheel-item" data-action="scanner">
 				<span class="ring"></span><span class="label">Scanner</span>
 			</button>
+			<button class="wheel-item" data-action="planner">
+				<span class="ring"></span><span class="label">Planner</span>
+			</button>
 			<button class="wheel-item" data-action="sketch">
 				<span class="ring"></span><span class="label">Sketch</span>
 			</button>
-			<button class="wheel-item" data-action="home">
-				<span class="ring"></span><span class="label">Home</span>
+			<button class="wheel-item" data-action="projects">
+				<span class="ring"></span><span class="label">Projetos</span>
 			</button>
-			<button class="wheel-item" data-action="sistema">
-				<span class="ring"></span><span class="label">Sistema</span>
+			<button class="wheel-item" data-action="inventory">
+				<span class="ring"></span><span class="label">Inventário</span>
+			</button>
+			<button class="wheel-item" data-action="pcb">
+				<span class="ring"></span><span class="label">PCB</span>
+			</button>
+			<button class="wheel-item" data-action="notes">
+				<span class="ring"></span><span class="label">Notas</span>
 			</button>
 		</div>
+		<div id="home-alerts" class="planner-alerts home-wheel-alerts" hidden></div>
 	</div>
 
 	<div id="app">

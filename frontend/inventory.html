@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Inventário - Axon</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+	<main id="screens">
+		<!-- TELA PRINCIPAL - LISTA DE ITENS + DETALHES (tudo no mesmo container) -->
+		<section class="screen flat inventory-screen active" data-screen="inventory" id="inventory-main">
+			<header class="inventory-header">
+				<div class="inventory-hero">
+					<a href="/" class="circle-btn" title="Voltar à roda principal">
+						<span class="ring"></span>
+						<span class="label">Home</span>
+					</a>
+					<div>
+						<h1>Inventário</h1>
+						<p>Gerencie componentes, ferramentas e materiais</p>
+					</div>
+				</div>
+
+				<div class="inventory-toolbar">
+					<div class="toolbar-section">
+						<button class="inventory-btn primary" id="btn-new-item">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2H9v4a1 1 0 1 1-2 0V9H3a1 1 0 1 1 0-2h4V3a1 1 0 0 1 1-1z"/>
+							</svg>
+							Novo Item
+						</button>
+						<button class="inventory-btn" id="btn-low-stock">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+								<path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+							</svg>
+							Estoque Baixo
+						</button>
+					</div>
+
+					<div class="toolbar-section">
+						<div class="search-box">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+							</svg>
+							<input type="text" id="search-inventory" placeholder="Buscar itens..." />
+						</div>
+					</div>
+
+					<div class="toolbar-section">
+						<select id="filter-category" class="inventory-select">
+							<option value="">Todas as Categorias</option>
+							<option value="componente">🔌 Componentes</option>
+							<option value="ferramenta">🔧 Ferramentas</option>
+							<option value="sensor">📡 Sensores</option>
+							<option value="mecanica">⚙️ Peças Mecânicas</option>
+							<option value="cabo">🔌 Cabos/Conectores</option>
+							<option value="bateria">🔋 Baterias</option>
+							<option value="motor">⚡ Motores</option>
+							<option value="outros">📦 Outros</option>
+						</select>
+
+						<button class="inventory-btn" id="btn-toggle-view" title="Alternar visualização">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+
+				<div class="inventory-stats">
+					<div class="stat-card">
+						<span class="stat-value" id="stat-total-items">0</span>
+						<span class="stat-label">Total de Itens</span>
+					</div>
+					<div class="stat-card">
+						<span class="stat-value" id="stat-low-stock">0</span>
+						<span class="stat-label">Estoque Baixo</span>
+					</div>
+					<div class="stat-card">
+						<span class="stat-value" id="stat-out-stock">0</span>
+						<span class="stat-label">Sem Estoque</span>
+					</div>
+					<div class="stat-card">
+						<span class="stat-value" id="stat-categories">0</span>
+						<span class="stat-label">Categorias</span>
+					</div>
+				</div>
+			</header>
+
+			<!-- LISTA DE ITENS -->
+			<div class="inventory-content" id="inventory-content">
+				<div class="inventory-grid" id="inventory-grid">
+					<!-- Cards de itens serão inseridos aqui -->
+				</div>
+
+				<div class="inventory-empty" id="inventory-empty" hidden>
+					<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+						<path d="M20 7h-9"/>
+						<path d="M14 17H5"/>
+						<circle cx="17" cy="17" r="3"/>
+						<circle cx="7" cy="7" r="3"/>
+					</svg>
+				</div>
+			</div>
+
+			<!-- TELA DE DETALHES DO ITEM (dentro da mesma seção) -->
+		<section class="screen flat inventory-detail-screen" data-screen="inventory-detail" id="inventory-detail" hidden>
+			<header class="inventory-detail-header">
+				<div class="detail-hero">
+					<button class="circle-btn" id="btn-back-to-inventory" title="Voltar">
+						<span class="ring"></span>
+						<span class="label">Voltar</span>
+					</button>
+					<div class="detail-title-area">
+						<input type="text" id="item-name" class="item-name-input" placeholder="Nome do Item" />
+						<div class="item-meta">
+							<select id="item-category" class="inline-select">
+								<option value="componente">🔌 Componentes</option>
+								<option value="ferramenta">🔧 Ferramentas</option>
+								<option value="sensor">📡 Sensores</option>
+								<option value="mecanica">⚙️ Peças Mecânicas</option>
+								<option value="cabo">🔌 Cabos/Conectores</option>
+								<option value="bateria">🔋 Baterias</option>
+								<option value="motor">⚡ Motores</option>
+								<option value="outros">📦 Outros</option>
+							</select>
+						</div>
+					</div>
+				</div>
+
+				<div class="detail-actions">
+					<button class="inventory-btn" id="btn-save-item">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+							<path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm2.854 5.854-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 8.793l2.646-2.647a.5.5 0 0 1 .708.708z"/>
+						</svg>
+						Salvar
+					</button>
+					<button class="inventory-btn danger" id="btn-delete-item">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+							<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+							<path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+						</svg>
+						Excluir
+					</button>
+				</div>
+			</header>
+
+			<div class="detail-content-grid">
+				<!-- COLUNA ESQUERDA -->
+				<div class="detail-main">
+					<div class="detail-section">
+						<h3>📝 Descrição</h3>
+						<textarea id="item-description" placeholder="Descrição do item..."></textarea>
+					</div>
+
+					<div class="detail-section">
+						<h3>📊 Estoque</h3>
+						<div class="stock-controls">
+							<div class="stock-field">
+								<label>Quantidade Atual</label>
+								<div class="stock-input-group">
+									<button class="stock-btn" id="btn-decrease-stock">−</button>
+									<input type="number" id="item-quantity" min="0" value="0" />
+									<button class="stock-btn" id="btn-increase-stock">+</button>
+								</div>
+							</div>
+							<div class="stock-field">
+								<label>Unidade</label>
+								<input type="text" id="item-unit" placeholder="un, kg, m, L..." />
+							</div>
+							<div class="stock-field">
+								<label>Estoque Mínimo</label>
+								<input type="number" id="item-min-stock" min="0" value="0" />
+							</div>
+							<div class="stock-field">
+								<label>Valor Unitário (R$)</label>
+								<input type="number" id="item-price" min="0" step="0.01" value="0" />
+							</div>
+						</div>
+						<div class="stock-alert" id="stock-alert" hidden>
+							⚠️ Estoque abaixo do mínimo!
+						</div>
+					</div>
+
+					<div class="detail-section">
+						<h3>📍 Localização & Info</h3>
+						<div class="info-fields">
+							<div class="info-field">
+								<label>Localização Física</label>
+								<input type="text" id="item-location" placeholder="Ex: Gaveta 3, Caixa Verde..." />
+							</div>
+							<div class="info-field">
+								<label>Fornecedor</label>
+								<input type="text" id="item-supplier" placeholder="Nome do fornecedor..." />
+							</div>
+							<div class="info-field">
+								<label>Código/SKU</label>
+								<input type="text" id="item-sku" placeholder="Código do produto..." />
+							</div>
+						</div>
+					</div>
+
+					<div class="detail-section">
+						<h3>📷 Fotos</h3>
+						<div class="photos-area">
+							<button class="upload-photo-btn" id="btn-upload-photo">
+								<svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+									<path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707V11.5z"/>
+									<path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+								</svg>
+								<span>Adicionar Foto</span>
+							</button>
+							<input type="file" id="photo-input" accept="image/*" multiple hidden />
+							<div class="photos-grid" id="photos-grid">
+								<!-- Fotos aqui -->
+							</div>
+						</div>
+					</div>
+
+					<div class="detail-section">
+						<h3>📄 Datasheets & Documentos</h3>
+						<div class="datasheets-area">
+							<button class="upload-datasheet-btn" id="btn-upload-datasheet">
+								<svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+									<path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707V11.5z"/>
+									<path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+								</svg>
+								Adicionar Documento
+							</button>
+							<input type="file" id="datasheet-input" accept=".pdf,.doc,.docx,.txt" multiple hidden />
+							<div class="datasheets-list" id="datasheets-list">
+								<!-- Documentos aqui -->
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- COLUNA DIREITA -->
+				<div class="detail-sidebar">
+					<div class="sidebar-card">
+						<h4>📊 Resumo</h4>
+						<div class="summary-item">
+							<span class="summary-label">Estoque Atual:</span>
+							<span class="summary-value" id="summary-stock">0</span>
+						</div>
+						<div class="summary-item">
+							<span class="summary-label">Valor Total:</span>
+							<span class="summary-value" id="summary-total-value">R$ 0,00</span>
+						</div>
+						<div class="summary-item">
+							<span class="summary-label">Última Atualização:</span>
+							<span class="summary-value" id="summary-updated">-</span>
+						</div>
+					</div>
+
+					<div class="sidebar-card">
+						<h4>📋 Histórico de Uso</h4>
+						<div class="usage-history" id="usage-history">
+							<p class="empty-text">Nenhum uso registrado</p>
+						</div>
+					</div>
+
+					<div class="sidebar-card">
+						<h4>🔗 Projetos Vinculados</h4>
+						<div class="linked-projects" id="linked-projects">
+							<p class="empty-text">Nenhum projeto vinculado</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+
+	<script defer src="/static/inventory.js"></script>
+</body>
+</html>
+

@@ -8,7 +8,9 @@
 	const sophiaBtn = document.getElementById('sophia-btn');
 	const sophiaWheel = document.getElementById('sophia-wheel');
 	const orbitRing = document.getElementById('orbit-ring');
+	const homeAlertsBox = document.getElementById('home-alerts');
 	const STORAGE_KEY = 'sophiaWheelSlots.v1';
+	const CAL_STORAGE_KEY = 'axonCalendar.v1';
 	let loadedSlotsThisOpen = false;
 	let selectedItem = null;
 	let suppressNextClick = false;
@@ -83,6 +85,12 @@
 			if (!raw) return;
 			const saved = JSON.parse(raw);
 			if (!saved || typeof saved !== 'object') return;
+			// Se o número de botões mudou, limpa o cache
+			const savedCount = Object.keys(saved).length;
+			if (savedCount !== items.length) {
+				localStorage.removeItem(STORAGE_KEY);
+				return;
+			}
 			items.forEach((el) => {
 				const key = el.getAttribute('data-action') || '';
 				if (key in saved) el.dataset.slot = String(saved[key]);
@@ -98,6 +106,22 @@
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(map)); } catch {}
 	}
 
+	function ensureUniqueSlots(items) {
+		const n = items.length;
+		const taken = new Set();
+		items.forEach((el, idx) => {
+			let slot = Number(el.dataset.slot);
+			if (!Number.isFinite(slot)) slot = idx;
+			let guard = 0;
+			while (taken.has(slot) && guard < n) {
+				slot = (slot + 1) % n;
+				guard++;
+			}
+			el.dataset.slot = String(slot);
+			taken.add(slot);
+		});
+	}
+
 	// Roda de seleção: posicionamento dinâmico
 	function layoutWheel() {
 		if (!sophiaWheel) return;
@@ -107,6 +131,7 @@
 		// aplica slots salvos na primeira abertura após toggle
 		if (!loadedSlotsThisOpen) {
 			loadSavedSlots(items);
+			ensureUniqueSlots(items);
 			loadedSlotsThisOpen = true;
 		}
 		const radius = computeRadius(items);
@@ -168,6 +193,7 @@
 	if (sophiaWheel) {
 		sophiaWheel.addEventListener('click', (e) => {
 			const btn = e.target.closest('.wheel-item');
+			console.log('[Wheel] Click detectado, btn:', btn);
 			if (!btn) return;
 			if (selectedItem) {
 				e.preventDefault();
@@ -188,6 +214,7 @@
 				return;
 			}
 			const action = btn.getAttribute('data-action');
+			console.log('[Wheel] Botão clicado:', btn, 'Action:', action);
 			if (action === 'calibration') {
 				// Ao navegar para calibração, a página própria gerencia start/stop
 				// Aqui apenas navegamos
@@ -213,6 +240,16 @@
 				try { fetch('/api/scanner/stop', { method: 'POST' }); } catch {}
 			} else if (action === 'sketch') {
 				window.location.href = '/sketch';
+			} else if (action === 'planner') {
+				window.location.href = '/planner';
+		} else if (action === 'projects') {
+			window.location.href = '/projects';
+		} else if (action === 'inventory') {
+			window.location.href = '/inventory';
+			} else if (action === 'pcb') {
+				window.location.href = '/pcb';
+			} else if (action === 'notes') {
+				window.location.href = '/notes';
 			}
 		});
 	}
@@ -379,6 +416,106 @@
 			};
 		};
 	})();
+
+	function updateHomeAlerts() {
+		if (!homeAlertsBox) return;
+		const events = loadCalendarEvents();
+		const now = new Date();
+		const upcoming = events
+			.map(resolveEventDetails)
+			.filter((item) => {
+				if (!item || !item.date) return false;
+				const diff = item.date.getTime() - now.getTime();
+				return diff >= 0 && diff <= 86400000;
+			})
+			.sort((a, b) => a.date - b.date)
+			.slice(0, 4);
+
+		if (!upcoming.length) {
+			homeAlertsBox.hidden = true;
+			homeAlertsBox.innerHTML = '';
+			return;
+		}
+		const list = upcoming
+			.map((item) => {
+				const label = escapeHtml(item.label || 'Compromisso');
+				const meta = escapeHtml(`${item.dateBr} · ${item.context}`);
+				return `<li><strong>${label}</strong><span>${meta}</span></li>`;
+			})
+			.join('');
+		homeAlertsBox.innerHTML = `
+			<div class="alerts-title">Compromissos nas próximas 24h</div>
+			<ul>${list}</ul>
+		`;
+		homeAlertsBox.hidden = false;
+	}
+
+	function loadCalendarEvents() {
+		try {
+			const raw = localStorage.getItem(CAL_STORAGE_KEY);
+			if (!raw) return [];
+			const parsed = JSON.parse(raw);
+			return Array.isArray(parsed) ? parsed : [];
+		} catch {
+			return [];
+		}
+	}
+
+	function resolveEventDetails(event) {
+		if (!event?.date) return null;
+		const date = new Date(event.date);
+		if (Number.isNaN(date.getTime())) return null;
+		return {
+			label: event.name || 'Compromisso',
+			context: event.place || 'Calendário',
+			date,
+			dateBr: formatDateBrShort(date),
+		};
+	}
+
+	function formatDateBrShort(date) {
+		try {
+			return date.toLocaleDateString('pt-BR', {
+				day: '2-digit',
+				month: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit',
+			});
+		} catch {
+			return date.toISOString().slice(0, 16).replace('T', ' ');
+		}
+	}
+
+	function escapeHtml(str) {
+		return String(str).replace(/[&<>"']/g, (ch) => (
+			({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] || ch
+		));
+	}
+
+	updateHomeAlerts();
+	window.addEventListener('focus', updateHomeAlerts);
+	setInterval(updateHomeAlerts, 60000);
+
+	// Garantir que o cache seja limpo se o número de botões mudou
+	const wheelItems = document.querySelectorAll('.wheel-item');
+	console.log('[Wheel] Total de botões:', wheelItems.length);
+	const expectedActions = ['calibration', 'scanner', 'planner', 'sketch', 'projects', 'inventory', 'pcb', 'notes'];
+	const currentActions = Array.from(wheelItems).map(item => item.getAttribute('data-action'));
+	
+	wheelItems.forEach((item, idx) => {
+		const action = item.getAttribute('data-action');
+		const slot = item.dataset.slot;
+		console.log(`[Wheel] Botão ${idx}: action="${action}", slot="${slot}"`);
+	});
+	
+	// Verificar se todas as ações esperadas estão presentes
+	const hasAllActions = expectedActions.every(action => currentActions.includes(action));
+	if (!hasAllActions || wheelItems.length !== 7) {
+		console.log('[Wheel] Limpando cache - ações ou número de botões não correspondem');
+		try {
+			localStorage.removeItem(STORAGE_KEY);
+		} catch {}
+	}
 
 })(); 
 

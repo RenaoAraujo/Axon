@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>PCB Editor - Axon</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+	<main id="screens">
+		<section class="screen flat pcb-screen active" data-screen="pcb">
+			<header class="pcb-header">
+				<div class="pcb-hero">
+					<a href="/" class="circle-btn" title="Voltar à roda principal">
+						<span class="ring"></span>
+						<span class="label">Home</span>
+					</a>
+					<div>
+						<h1>PCB Editor</h1>
+						<p>Design de circuitos impressos com múltiplas camadas</p>
+					</div>
+				</div>
+
+				<div class="pcb-toolbar">
+					<div class="toolbar-section">
+						<label>Ferramenta:</label>
+						<button class="tool-btn active" data-tool="select" title="Selecionar (V)">
+							<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+								<path d="M3 3 L3 17 L8 12 L11 17 L13 16 L10 11 L17 11 Z"/>
+							</svg>
+						</button>
+						<button class="tool-btn" data-tool="trace" title="Trilha (T)">
+							<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+								<line x1="3" y1="17" x2="17" y2="3"/>
+							</svg>
+						</button>
+						<button class="tool-btn" data-tool="pad" title="Pad (P)">
+							<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+								<circle cx="10" cy="10" r="6"/>
+							</svg>
+						</button>
+						<button class="tool-btn" data-tool="via" title="Via (I)">
+							<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="10" cy="10" r="5"/>
+								<circle cx="10" cy="10" r="2" fill="currentColor"/>
+							</svg>
+						</button>
+						<button class="tool-btn" data-tool="component" title="Componente (C)">
+							<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+								<rect x="4" y="4" width="12" height="12"/>
+								<line x1="4" y1="7" x2="2" y2="7"/>
+								<line x1="4" y1="13" x2="2" y2="13"/>
+								<line x1="16" y1="7" x2="18" y2="7"/>
+								<line x1="16" y1="13" x2="18" y2="13"/>
+							</svg>
+						</button>
+						<button class="tool-btn" data-tool="text" title="Texto (X)">
+							<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+								<text x="10" y="15" text-anchor="middle" font-size="14" font-weight="bold">T</text>
+							</svg>
+						</button>
+						<button class="tool-btn" data-tool="measure" title="Medir (M)">
+							<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+								<line x1="3" y1="10" x2="17" y2="10"/>
+								<line x1="3" y1="8" x2="3" y2="12"/>
+								<line x1="17" y1="8" x2="17" y2="12"/>
+							</svg>
+						</button>
+					</div>
+
+					<div class="toolbar-section">
+						<label>Camada:</label>
+						<select id="layer-select" class="pcb-select">
+							<option value="top">Top (Vermelho)</option>
+							<option value="bottom">Bottom (Azul)</option>
+							<option value="silk-top">Silk Top (Branco)</option>
+							<option value="silk-bottom">Silk Bottom (Amarelo)</option>
+						</select>
+					</div>
+
+					<div class="toolbar-section">
+						<label>Largura:</label>
+						<select id="trace-width" class="pcb-select">
+							<option value="0.2">0.2mm (Sinal)</option>
+							<option value="0.3" selected>0.3mm (Padrão)</option>
+							<option value="0.5">0.5mm (Potência)</option>
+							<option value="0.8">0.8mm (Alta corrente)</option>
+							<option value="1.0">1.0mm</option>
+							<option value="1.5">1.5mm</option>
+							<option value="2.0">2.0mm</option>
+						</select>
+					</div>
+
+					<div class="toolbar-section">
+						<label>Grade:</label>
+						<select id="grid-size" class="pcb-select">
+							<option value="0.1">0.1mm (Fino)</option>
+							<option value="0.5">0.5mm</option>
+							<option value="1.0" selected>1.0mm (Padrão)</option>
+							<option value="2.54">2.54mm (0.1")</option>
+							<option value="5.0">5.0mm</option>
+						</select>
+						<label class="checkbox-label">
+							<input type="checkbox" id="snap-to-grid" checked />
+							Snap
+						</label>
+					</div>
+
+					<div class="toolbar-section">
+						<button class="pcb-btn" id="btn-components" title="Biblioteca de componentes">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<rect x="2" y="2" width="5" height="5"/>
+								<rect x="9" y="2" width="5" height="5"/>
+								<rect x="2" y="9" width="5" height="5"/>
+								<rect x="9" y="9" width="5" height="5"/>
+							</svg>
+							Componentes
+						</button>
+						<button class="pcb-btn" id="btn-layers" title="Gerenciar camadas">Camadas</button>
+						<button class="pcb-btn" id="btn-export" title="Exportar design">Exportar</button>
+						<button class="pcb-btn danger" id="btn-clear" title="Limpar tudo">Limpar</button>
+					</div>
+				</div>
+
+				<div class="pcb-status">
+					<span id="cursor-pos">X: 0.00mm Y: 0.00mm</span>
+					<span id="zoom-level">Zoom: 100%</span>
+					<span id="selection-info"></span>
+				</div>
+			</header>
+
+			<div class="pcb-workspace">
+				<div class="pcb-sidebar" id="components-panel" hidden>
+					<h3>Biblioteca de Componentes</h3>
+					<div class="component-search">
+						<input type="text" id="component-search" placeholder="Buscar componente..." />
+					</div>
+					<div class="component-list" id="component-list">
+						<div class="component-category">
+							<h4>Resistores</h4>
+							<button class="component-item" data-component="resistor-0402">0402 - Resistor SMD</button>
+							<button class="component-item" data-component="resistor-0603">0603 - Resistor SMD</button>
+							<button class="component-item" data-component="resistor-0805">0805 - Resistor SMD</button>
+							<button class="component-item" data-component="resistor-1206">1206 - Resistor SMD</button>
+							<button class="component-item" data-component="resistor-2512">2512 - Resistor Power</button>
+							<button class="component-item" data-component="resistor-th">TH - Resistor Through-hole</button>
+						</div>
+						<div class="component-category">
+							<h4>Capacitores</h4>
+							<button class="component-item" data-component="cap-0603">0603 - Capacitor SMD</button>
+							<button class="component-item" data-component="cap-0805">0805 - Capacitor SMD</button>
+							<button class="component-item" data-component="cap-1206">1206 - Capacitor SMD</button>
+							<button class="component-item" data-component="cap-tantalum">Tântalo SMD</button>
+							<button class="component-item" data-component="cap-elec">Eletrolítico TH</button>
+						</div>
+						<div class="component-category">
+							<h4>Diodos</h4>
+							<button class="component-item" data-component="diode-sod123">SOD-123</button>
+							<button class="component-item" data-component="diode-sma">SMA</button>
+							<button class="component-item" data-component="diode-th">Through-hole</button>
+						</div>
+						<div class="component-category">
+							<h4>LEDs</h4>
+							<button class="component-item" data-component="led-0603">0603 - LED SMD</button>
+							<button class="component-item" data-component="led-0805">0805 - LED SMD</button>
+							<button class="component-item" data-component="led-1206">1206 - LED SMD</button>
+							<button class="component-item" data-component="led-th">LED 5mm TH</button>
+						</div>
+						<div class="component-category">
+							<h4>Transistores</h4>
+							<button class="component-item" data-component="transistor-sot23">SOT-23</button>
+							<button class="component-item" data-component="transistor-to92">TO-92</button>
+						</div>
+						<div class="component-category">
+							<h4>Circuitos Integrados</h4>
+							<button class="component-item" data-component="dip-8">DIP-8</button>
+							<button class="component-item" data-component="dip-14">DIP-14</button>
+							<button class="component-item" data-component="dip-16">DIP-16</button>
+							<button class="component-item" data-component="soic-8">SOIC-8</button>
+							<button class="component-item" data-component="soic-14">SOIC-14</button>
+							<button class="component-item" data-component="soic-16">SOIC-16</button>
+							<button class="component-item" data-component="qfp-32">QFP-32</button>
+							<button class="component-item" data-component="qfn-16">QFN-16</button>
+						</div>
+						<div class="component-category">
+							<h4>Soquetes</h4>
+							<button class="component-item" data-component="socket-ic-8">Soquete IC 8 pinos</button>
+							<button class="component-item" data-component="socket-ic-14">Soquete IC 14 pinos</button>
+						</div>
+						<div class="component-category">
+							<h4>Conectores</h4>
+							<button class="component-item" data-component="header-1x2">Header 1x2</button>
+							<button class="component-item" data-component="header-1x3">Header 1x3</button>
+							<button class="component-item" data-component="header-1x4">Header 1x4</button>
+							<button class="component-item" data-component="header-2x3">Header 2x3</button>
+							<button class="component-item" data-component="header-2x4">Header 2x4</button>
+							<button class="component-item" data-component="usb-a">USB-A</button>
+							<button class="component-item" data-component="usb-micro">USB Micro</button>
+							<button class="component-item" data-component="usb-c">USB Type-C</button>
+							<button class="component-item" data-component="jack-3.5mm">Jack 3.5mm</button>
+						</div>
+						<div class="component-category">
+							<h4>Reguladores</h4>
+							<button class="component-item" data-component="regulator-7805">7805 TO-220</button>
+							<button class="component-item" data-component="regulator-sot223">SOT-223</button>
+						</div>
+						<div class="component-category">
+							<h4>Cristais</h4>
+							<button class="component-item" data-component="crystal-hc49">HC-49</button>
+							<button class="component-item" data-component="crystal-smd">Cristal SMD</button>
+						</div>
+						<div class="component-category">
+							<h4>Botões e Switches</h4>
+							<button class="component-item" data-component="button-tactile">Botão Táctil 6x6</button>
+							<button class="component-item" data-component="switch-toggle">Switch Toggle</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="pcb-canvas-container">
+					<canvas id="pcb-canvas"></canvas>
+					<div class="pcb-ruler-x" id="ruler-x"></div>
+					<div class="pcb-ruler-y" id="ruler-y"></div>
+				</div>
+
+				<div class="pcb-sidebar right" id="properties-panel">
+					<h3>Propriedades</h3>
+					<div id="properties-content">
+						<p class="empty-state">Selecione um elemento para editar</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Modal de Exportação -->
+			<div class="modal-overlay" id="export-modal" hidden>
+				<div class="modal pcb-modal">
+					<div class="modal-head">
+						<h3>Exportar Design</h3>
+						<button type="button" class="close-btn" data-action="close-modal">×</button>
+					</div>
+					<div class="modal-body">
+						<div class="export-options">
+							<button class="export-btn" id="export-svg">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+									<polyline points="14 2 14 8 20 8" fill="none" stroke="#0b0f1a" stroke-width="2"/>
+								</svg>
+								Exportar SVG
+							</button>
+							<button class="export-btn" id="export-json">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+									<text x="12" y="16" text-anchor="middle" font-size="6" fill="#0b0f1a" font-weight="bold">{}</text>
+								</svg>
+								Exportar JSON
+							</button>
+							<button class="export-btn" id="export-png">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+									<rect x="3" y="3" width="18" height="18" rx="2"/>
+									<circle cx="8.5" cy="8.5" r="1.5" fill="#0b0f1a"/>
+									<path d="M21 15l-5-5L5 21" fill="none" stroke="#0b0f1a" stroke-width="2"/>
+								</svg>
+								Exportar PNG
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Modal de Camadas -->
+			<div class="modal-overlay" id="layers-modal" hidden>
+				<div class="modal pcb-modal">
+					<div class="modal-head">
+						<h3>Gerenciar Camadas</h3>
+						<button type="button" class="close-btn" data-action="close-modal">×</button>
+					</div>
+					<div class="modal-body">
+						<div class="layers-list">
+							<div class="layer-item">
+								<input type="checkbox" id="layer-top-visible" checked />
+								<label for="layer-top-visible">Top (Vermelho)</label>
+								<input type="range" min="10" max="100" value="100" class="opacity-slider" data-layer="top" />
+							</div>
+							<div class="layer-item">
+								<input type="checkbox" id="layer-bottom-visible" checked />
+								<label for="layer-bottom-visible">Bottom (Azul)</label>
+								<input type="range" min="10" max="100" value="100" class="opacity-slider" data-layer="bottom" />
+							</div>
+							<div class="layer-item">
+								<input type="checkbox" id="layer-silk-top-visible" checked />
+								<label for="layer-silk-top-visible">Silk Top (Branco)</label>
+								<input type="range" min="10" max="100" value="100" class="opacity-slider" data-layer="silk-top" />
+							</div>
+							<div class="layer-item">
+								<input type="checkbox" id="layer-silk-bottom-visible" checked />
+								<label for="layer-silk-bottom-visible">Silk Bottom (Amarelo)</label>
+								<input type="range" min="10" max="100" value="100" class="opacity-slider" data-layer="silk-bottom" />
+							</div>
+							<div class="layer-item">
+								<input type="checkbox" id="layer-drill-visible" checked />
+								<label for="layer-drill-visible">Furos (Preto)</label>
+								<input type="range" min="10" max="100" value="100" class="opacity-slider" data-layer="drill" />
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</section>
+	</main>
+
+	<script defer src="/static/pcb.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Planner Axon</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+	<main id="screens">
+		<section class="screen flat planner-screen active" data-screen="planner">
+			<header class="planner-header">
+				<div class="planner-hero">
+					<a href="/" class="circle-btn" title="Voltar à roda principal">
+						<span class="ring"></span>
+						<span class="label">Home</span>
+					</a>
+					<div>
+						<h1>Planner</h1>
+						<p>Organize quadros, listas e tabelas colaborativas ou visualize compromissos.</p>
+					</div>
+				</div>
+				<div class="planner-tabs">
+					<button class="tab-btn active" data-view="board">Planner</button>
+					<button class="tab-btn" data-view="tables">Tabelas</button>
+					<button class="tab-btn" data-view="calendar">Calendário</button>
+				</div>
+				<div class="planner-actions">
+					<button id="btn-add-list" class="planner-btn">Nova lista</button>
+					<button id="btn-add-table" class="planner-btn">Nova tabela</button>
+					<button id="btn-reset-board" class="planner-btn danger">Limpar planner</button>
+				</div>
+			</header>
+			<div id="planner-alerts" class="planner-alerts" hidden></div>
+
+			<div class="planner-views">
+				<div class="planner-view active" data-view="board">
+					<div class="planner-grid" id="planner-grid"></div>
+				</div>
+				<div class="planner-view" data-view="tables">
+					<div class="planner-grid" id="tables-grid"></div>
+				</div>
+				<div class="planner-view" data-view="calendar">
+					<section class="calendar-shell">
+						<header class="calendar-head">
+							<div>
+								<p class="calendar-label">Calendário</p>
+								<h2 id="calendar-current-label"></h2>
+							</div>
+							<div class="calendar-controls">
+								<button class="planner-btn ghost" id="calendar-today">Hoje</button>
+								<div class="calendar-nav">
+									<button class="planner-btn ghost icon" id="calendar-prev" aria-label="Mês anterior">‹</button>
+									<button class="planner-btn ghost icon" id="calendar-next" aria-label="Próximo mês">›</button>
+								</div>
+							</div>
+						</header>
+
+						<div class="calendar-grid" id="calendar-grid"></div>
+
+						<form class="calendar-form" id="calendar-mini-form">
+							<input type="text" id="mini-event-name" placeholder="Compromisso" required />
+							<input type="text" id="mini-event-place" placeholder="Local" required />
+							<input type="datetime-local" id="mini-event-date" required />
+							<button class="planner-btn" type="submit">Adicionar</button>
+						</form>
+						<div class="calendar-list" id="calendar-mini-list"></div>
+					</section>
+				</div>
+			</div>
+
+		</section>
+	</main>
+
+	<script defer src="/static/planner.js"></script>
+</body>
+</html>
+

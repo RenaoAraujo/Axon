@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Biblioteca de Projetos - Axon</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+	<main id="screens">
+		<!-- TELA PRINCIPAL - LISTA DE PROJETOS -->
+		<section class="screen flat projects-screen active" data-screen="projects" id="projects-library">
+			<header class="projects-header">
+				<div class="projects-hero">
+					<a href="/" class="circle-btn" title="Voltar à roda principal">
+						<span class="ring"></span>
+						<span class="label">Home</span>
+					</a>
+					<div>
+						<h1>Biblioteca de Projetos</h1>
+						<p>Gerencie todos os seus projetos em um só lugar</p>
+					</div>
+				</div>
+
+				<div class="projects-toolbar">
+					<div class="toolbar-section">
+						<button class="projects-btn primary" id="btn-new-project">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2H9v4a1 1 0 1 1-2 0V9H3a1 1 0 1 1 0-2h4V3a1 1 0 0 1 1-1z"/>
+							</svg>
+							Novo Projeto
+						</button>
+					</div>
+
+					<div class="toolbar-section">
+						<div class="search-box">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+							</svg>
+							<input type="text" id="search-projects" placeholder="Buscar projetos..." />
+						</div>
+					</div>
+
+					<div class="toolbar-section">
+						<select id="filter-area" class="projects-select">
+							<option value="">Todas as Áreas</option>
+							<option value="eletronica">Eletrônica</option>
+							<option value="mecanica">Mecânica</option>
+							<option value="software">Software</option>
+							<option value="robotica">Robótica</option>
+							<option value="iot">IoT</option>
+							<option value="impressao3d">Impressão 3D</option>
+							<option value="outros">Outros</option>
+						</select>
+
+						<select id="filter-status" class="projects-select">
+							<option value="">Todos os Status</option>
+							<option value="planejamento">Planejamento</option>
+							<option value="construcao">Construção</option>
+							<option value="testes">Testes</option>
+							<option value="finalizado">Finalizado</option>
+							<option value="pausado">Pausado</option>
+						</select>
+
+						<button class="projects-btn" id="btn-toggle-view" title="Alternar visualização">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+
+				<div class="projects-stats">
+					<div class="stat-card">
+						<span class="stat-value" id="stat-total">0</span>
+						<span class="stat-label">Total</span>
+					</div>
+					<div class="stat-card">
+						<span class="stat-value" id="stat-active">0</span>
+						<span class="stat-label">Em Andamento</span>
+					</div>
+					<div class="stat-card">
+						<span class="stat-value" id="stat-completed">0</span>
+						<span class="stat-label">Finalizados</span>
+					</div>
+				</div>
+			</header>
+
+			<div class="projects-content">
+				<div class="projects-grid" id="projects-grid">
+					<!-- Cards de projetos serão inseridos aqui -->
+				</div>
+
+				<div class="projects-empty" id="projects-empty" hidden>
+					<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+						<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+						<path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+					</svg>
+				</div>
+			</div>
+
+			<!-- TELA DE DETALHES DO PROJETO (agora dentro da mesma seção) -->
+			<section class="screen flat project-detail-screen" data-screen="project-detail" id="project-detail" hidden>
+			<header class="project-detail-header">
+				<div class="project-hero">
+					<button class="circle-btn" id="btn-back-to-library" title="Voltar">
+						<span class="ring"></span>
+						<span class="label">Voltar</span>
+					</button>
+					<div class="project-title-area">
+						<input type="text" id="project-name" class="project-name-input" placeholder="Nome do Projeto" />
+						<div class="project-meta">
+							<select id="project-area" class="inline-select">
+								<option value="eletronica">📱 Eletrônica</option>
+								<option value="mecanica">⚙️ Mecânica</option>
+								<option value="software">💻 Software</option>
+								<option value="robotica">🤖 Robótica</option>
+								<option value="iot">🌐 IoT</option>
+								<option value="impressao3d">🖨️ Impressão 3D</option>
+								<option value="outros">📦 Outros</option>
+							</select>
+							<select id="project-status" class="inline-select status-select">
+								<option value="planejamento">📋 Planejamento</option>
+								<option value="construcao">🔨 Construção</option>
+								<option value="testes">🧪 Testes</option>
+								<option value="finalizado">✅ Finalizado</option>
+								<option value="pausado">⏸️ Pausado</option>
+							</select>
+							<button class="icon-btn" id="btn-favorite" title="Favoritar">
+								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+									<path d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/>
+								</svg>
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="project-actions">
+					<button class="projects-btn" id="btn-save-project">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+							<path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm2.854 5.854-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 8.793l2.646-2.647a.5.5 0 0 1 .708.708z"/>
+						</svg>
+						Salvar
+					</button>
+					<button class="projects-btn danger" id="btn-delete-project">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+							<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+							<path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+						</svg>
+						Excluir
+					</button>
+				</div>
+			</header>
+
+			<div class="project-tabs">
+				<button class="tab-btn active" data-tab="overview">📊 Overview</button>
+				<button class="tab-btn" data-tab="tasks">✅ Tarefas</button>
+				<button class="tab-btn" data-tab="materials">🔧 Materiais</button>
+				<button class="tab-btn" data-tab="files">📁 Arquivos</button>
+				<button class="tab-btn" data-tab="logs">📝 Logs</button>
+				<button class="tab-btn" data-tab="versions">🔄 Versões</button>
+			</div>
+
+			<div class="project-detail-content">
+				<!-- TAB: OVERVIEW -->
+				<div class="tab-content active" id="tab-overview">
+					<div class="overview-grid">
+						<div class="overview-card">
+							<h3>Descrição</h3>
+							<textarea id="project-description" placeholder="Descreva seu projeto..."></textarea>
+						</div>
+						<div class="overview-sidebar">
+							<div class="info-card">
+								<h4>Tags</h4>
+								<div class="tags-container" id="project-tags"></div>
+								<input type="text" id="tag-input" placeholder="Adicionar tag..." />
+							</div>
+							<div class="info-card">
+								<h4>Datas</h4>
+								<div class="date-item">
+									<span class="date-label">Criado:</span>
+									<span id="date-created">-</span>
+								</div>
+								<div class="date-item">
+									<span class="date-label">Início:</span>
+									<input type="date" id="date-start" />
+								</div>
+								<div class="date-item">
+									<span class="date-label">Fim:</span>
+									<input type="date" id="date-end" />
+								</div>
+								<div class="date-item">
+									<span class="date-label">Última mod.:</span>
+									<span id="date-modified">-</span>
+								</div>
+							</div>
+							<div class="info-card">
+								<h4>Progresso Geral</h4>
+								<div class="progress-bar">
+									<div class="progress-fill" id="project-progress" style="width: 0%"></div>
+								</div>
+								<span class="progress-text" id="progress-text">0%</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- TAB: TAREFAS -->
+				<div class="tab-content" id="tab-tasks" hidden>
+					<div class="tasks-header">
+						<button class="projects-btn" id="btn-new-task">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2H9v4a1 1 0 1 1-2 0V9H3a1 1 0 1 1 0-2h4V3a1 1 0 0 1 1-1z"/>
+							</svg>
+							Nova Tarefa
+						</button>
+					</div>
+					<div class="tasks-list" id="tasks-list">
+						<!-- Tarefas aqui -->
+					</div>
+				</div>
+
+				<!-- TAB: MATERIAIS -->
+				<div class="tab-content" id="tab-materials" hidden>
+					<div class="materials-header">
+						<div class="materials-form">
+							<div class="materials-col">
+								<h3>Buscar no Inventário</h3>
+								<input type="text" id="material-search" placeholder="Pesquisar por nome ou SKU..." />
+								<!-- Por enquanto só campo visual; integração pode ser feita via JS no futuro -->
+							</div>
+							<div class="materials-col">
+								<h3>Adicionar Manualmente</h3>
+								<input type="text" id="manual-name" placeholder="Nome do material" />
+								<input type="number" id="manual-qty" min="0" placeholder="Quantidade" />
+								<input type="text" id="manual-unit" placeholder="Unidade (ex: un, kg)" />
+								<input type="text" id="manual-supplier" placeholder="Fornecedor (opcional)" />
+								<div class="materials-actions">
+									<button type="button" class="projects-btn" id="btn-add-material">Adicionar</button>
+									<button type="button" class="projects-btn" id="btn-clear-material">Cancelar</button>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="materials-list" id="materials-list">
+						<!-- Materiais aqui -->
+					</div>
+				</div>
+
+				<!-- TAB: ARQUIVOS -->
+				<div class="tab-content" id="tab-files" hidden>
+					<div class="files-header">
+						<button class="projects-btn" id="btn-upload-file">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707V11.5z"/>
+								<path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+							</svg>
+							Upload Arquivo
+						</button>
+						<input type="file" id="file-input" multiple hidden />
+					</div>
+					<div class="files-list" id="files-list">
+						<!-- Arquivos aqui -->
+					</div>
+				</div>
+
+				<!-- TAB: LOGS -->
+				<div class="tab-content" id="tab-logs" hidden>
+					<div class="logs-header">
+						<button class="projects-btn" id="btn-new-log">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2H9v4a1 1 0 1 1-2 0V9H3a1 1 0 1 1 0-2h4V3a1 1 0 0 1 1-1z"/>
+							</svg>
+							Novo Log
+						</button>
+					</div>
+					<div class="logs-timeline" id="logs-timeline">
+						<!-- Logs aqui -->
+					</div>
+				</div>
+
+				<!-- TAB: VERSÕES -->
+				<div class="tab-content" id="tab-versions" hidden>
+					<div class="versions-header">
+						<button class="projects-btn" id="btn-new-version">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2H9v4a1 1 0 1 1-2 0V9H3a1 1 0 1 1 0-2h4V3a1 1 0 0 1 1-1z"/>
+							</svg>
+							Nova Versão
+						</button>
+					</div>
+					<div class="versions-list" id="versions-list">
+						<!-- Versões aqui -->
+					</div>
+				</div>
+			</div>
+			</section>
+		</section>
+	</main>
+
+	<script defer src="/static/projects.js"></script>
+</body>
+</html>
+

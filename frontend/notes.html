@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Bloco de Notas - Axon</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+	<main id="screens">
+		<section class="screen flat notes-screen active" data-screen="notes">
+			<header class="notes-header">
+				<div class="notes-hero">
+					<a href="/" class="circle-btn" title="Voltar à roda principal">
+						<span class="ring"></span>
+						<span class="label">Home</span>
+					</a>
+					<div>
+						<h1>Bloco de Notas</h1>
+						<p>Anotações rápidas e organizadas</p>
+					</div>
+				</div>
+
+				<div class="notes-toolbar">
+					<div class="toolbar-section">
+						<button class="notes-btn" id="btn-new-note">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2H9v4a1 1 0 1 1-2 0V9H3a1 1 0 1 1 0-2h4V3a1 1 0 0 1 1-1z"/>
+							</svg>
+							Nova Nota
+						</button>
+						<button class="notes-btn" id="btn-delete-note" disabled>
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+								<path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+							</svg>
+							Excluir
+						</button>
+					</div>
+
+					<div class="toolbar-section">
+						<div class="search-box">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+							</svg>
+							<input type="text" id="search-notes" placeholder="Buscar notas..." />
+						</div>
+					</div>
+
+					<div class="toolbar-section">
+						<select id="sort-notes" class="notes-select">
+							<option value="date-desc">Mais recentes</option>
+							<option value="date-asc">Mais antigas</option>
+							<option value="title-asc">A-Z</option>
+							<option value="title-desc">Z-A</option>
+						</select>
+					</div>
+				</div>
+			</header>
+
+			<div class="notes-workspace">
+				<div class="notes-sidebar" id="notes-list">
+					<div class="notes-empty" id="notes-empty">
+						<p>Nenhuma nota criada</p>
+						<p class="hint">Clique em "Nova Nota" para começar</p>
+					</div>
+				</div>
+
+				<div class="notes-editor" id="notes-editor">
+					<div class="editor-empty" id="editor-empty">
+						<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+							<polyline points="14 2 14 8 20 8"/>
+							<line x1="16" y1="13" x2="8" y2="13"/>
+							<line x1="16" y1="17" x2="8" y2="17"/>
+							<polyline points="10 9 9 9 8 9"/>
+						</svg>
+						<p>Selecione uma nota ou crie uma nova</p>
+					</div>
+
+					<div class="editor-content" id="editor-content" hidden>
+						<div class="editor-header">
+							<input type="text" id="note-title" class="note-title-input" placeholder="Título da nota..." />
+							<div class="editor-meta">
+								<span id="note-date"></span>
+							</div>
+						</div>
+						<div class="editor-text-wrapper">
+							<textarea id="note-content" class="note-content-textarea" placeholder="Comece a escrever..."></textarea>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+
+	<script defer src="/static/notes.js"></script>
+</body>
+</html>
+
