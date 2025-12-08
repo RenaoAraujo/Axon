@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Axon - Conversor</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+	<script defer src="/static/converter.js"></script>
+</head>
+<body>
+	<div class="app-header">
+		<h1>Conversor</h1>
+		<div class="status">
+			<a href="/" class="circle-btn" style="text-decoration: none;">
+				<span class="ring"></span>
+				<span class="label">Home</span>
+			</a>
+		</div>
+	</div>
+	<main id="screens" class="screen flat" style="padding: 16px;">
+		<section class="calendar-shell" style="max-width: 980px; margin: 0 auto;">
+			<div class="planner-hero">
+				<h1 class="vibrant-text" style="margin: 0;">Conversor de Medidas</h1>
+				<p>Selecione a categoria, preencha os campos e veja os resultados.</p>
+			</div>
+			<div class="calendar-form">
+				<label>
+					<span>Categoria</span>
+					<select id="conv-category" class="projects-select">
+						<option value="length">Comprimento</option>
+						<option value="speed">Velocidade</option>
+						<option value="temp">Temperatura</option>
+						<option value="mass">Massa/Peso</option>
+						<option value="time">Tempo</option>
+						<option value="pressure">Pressão</option>
+						<option value="torque">Torque</option>
+						<option value="charge">Carga Elétrica</option>
+						<option value="energy">Energia Elétrica</option>
+					</select>
+				</label>
+				<label>
+					<span>Valor</span>
+					<input id="conv-value" type="number" step="any" class="projects-select" value="1" />
+				</label>
+				<label>
+					<span>De</span>
+					<select id="conv-from" class="projects-select"></select>
+				</label>
+				<label>
+					<span>Para</span>
+					<select id="conv-to" class="projects-select"></select>
+				</label>
+				<button id="conv-run" class="projects-btn primary">Converter</button>
+			</div>
+			<div id="conv-result" class="planner-alerts" hidden></div>
+		</section>
+	</main>
+</body>
+</html>
+
+

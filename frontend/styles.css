@@ -153,6 +153,7 @@ body {
 	transition: transform 0.15s ease, box-shadow 0.3s ease;
 	box-shadow: 0 0 0 0 rgba(76,201,240,0.0);
 	overflow: hidden;
+	text-decoration: none; /* remover sublinhado quando for <a> */
 }
 .circle-btn .label {
 	position: relative;

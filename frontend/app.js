@@ -11,6 +11,18 @@
 	const homeAlertsBox = document.getElementById('home-alerts');
 	const STORAGE_KEY = 'sophiaWheelSlots.v1';
 	const CAL_STORAGE_KEY = 'axonCalendar.v1';
+	const HIDDEN_KEY = 'sophiaWheelHidden.v1';
+	const manageBtn = document.getElementById('wheel-manage-btn');
+	const manageDialog = document.getElementById('wheel-manage-dialog');
+	const manageList = document.getElementById('wheel-manage-list');
+	const wmClose = document.getElementById('wm-close');
+	const wmShowAll = document.getElementById('wm-show-all');
+	// Logs de diagnóstico
+	if (manageBtn) {
+		console.log('[Wheel] Botão "Gerenciar opções" pronto');
+	} else {
+		console.warn('[Wheel] Botão "Gerenciar opções" não encontrado');
+	}
 	let loadedSlotsThisOpen = false;
 	let selectedItem = null;
 	let suppressNextClick = false;
@@ -122,10 +134,67 @@
 		});
 	}
 
+	// ---------- Gerenciador visual da roda ----------
+	function openWheelManager() {
+		if (!sophiaWheel || !manageDialog || !manageList) return;
+		const hidden = loadHiddenSet();
+		manageList.innerHTML = '';
+		const all = Array.from(sophiaWheel.querySelectorAll('.wheel-item'));
+		all.forEach((item) => {
+			const action = item.getAttribute('data-action') || '';
+			if (!action) return;
+			const labelEl = item.querySelector('.label');
+			const label = (labelEl ? labelEl.textContent : action) || action;
+			const row = document.createElement('label');
+			row.className = 'wm-row';
+			row.style.display = 'flex';
+			row.style.alignItems = 'center';
+			row.style.gap = '8px';
+			const cb = document.createElement('input');
+			cb.type = 'checkbox';
+			cb.checked = !hidden.has(action);
+			cb.addEventListener('change', () => {
+				const set = loadHiddenSet();
+				if (cb.checked) set.delete(action); else set.add(action);
+				saveHiddenSet(set);
+				applyHidden();
+				compactVisibleSlots();
+				layoutWheel();
+			});
+			const span = document.createElement('span');
+			span.textContent = label;
+			row.appendChild(cb);
+			row.appendChild(span);
+			manageList.appendChild(row);
+		});
+		manageDialog.hidden = false;
+	}
+	// Expor função globalmente para testes via Console
+	try { window.openWheelManager = openWheelManager; } catch {}
+	manageBtn?.addEventListener('click', (e) => {
+		console.log('[Wheel] Clique em "Gerenciar opções"');
+		openWheelManager();
+	});
+	wmClose?.addEventListener('click', () => { if (manageDialog) manageDialog.hidden = true; });
+	wmShowAll?.addEventListener('click', () => {
+		saveHiddenSet(new Set());
+		applyHidden();
+		compactVisibleSlots();
+		layoutWheel();
+		openWheelManager();
+	});
+	// Atalho Shift+M para abrir o gerenciador
+	window.addEventListener('keydown', (e) => {
+		if (e.shiftKey && String(e.key).toLowerCase() === 'm') {
+			console.log('[Wheel] Atalho Shift+M acionado');
+			openWheelManager();
+		}
+	});
+
 	// Roda de seleção: posicionamento dinâmico
 	function layoutWheel() {
 		if (!sophiaWheel) return;
-		const items = Array.from(sophiaWheel.querySelectorAll('.wheel-item'));
+		const items = getVisibleWheelItems();
 		if (!items.length) return;
 		const n = items.length;
 		// aplica slots salvos na primeira abertura após toggle
@@ -182,6 +251,7 @@
 				requestAnimationFrame(() => {
 					sophiaWheel.classList.add('open');
 					bindSelectSwap();
+					applyHidden();
 					layoutWheel();
 					if (orbitRing) orbitRing.hidden = false;
 				});
@@ -191,6 +261,24 @@
 
 	// Ações dos itens da roda
 	if (sophiaWheel) {
+		// Ocultar/mostrar via menu de contexto (clique direito)
+		sophiaWheel.addEventListener('contextmenu', (e) => {
+			const btn = e.target.closest('.wheel-item');
+			if (!btn) return;
+			e.preventDefault();
+			const action = btn.getAttribute('data-action') || '';
+			if (!action) return;
+			const hidden = loadHiddenSet();
+			const isHidden = hidden.has(action);
+			const ok = confirm(isHidden ? 'Reexibir esta opção da roda?' : 'Ocultar esta opção da roda?');
+			if (!ok) return;
+			if (isHidden) hidden.delete(action); else hidden.add(action);
+			saveHiddenSet(hidden);
+			applyHidden();
+			compactVisibleSlots();
+			layoutWheel();
+		});
+
 		sophiaWheel.addEventListener('click', (e) => {
 			const btn = e.target.closest('.wheel-item');
 			console.log('[Wheel] Click detectado, btn:', btn);
@@ -250,13 +338,31 @@
 				window.location.href = '/pcb';
 			} else if (action === 'notes') {
 				window.location.href = '/notes';
+			} else if (action === 'converter') {
+				window.location.href = '/converter';
+			} else if (action === 'calculator') {
+				window.location.href = '/calculator';
+			}
+		});
+	}
+
+	// Reset rápido dos ocultos: clique direito no botão central
+	if (sophiaBtn) {
+		sophiaBtn.addEventListener('contextmenu', (e) => {
+			e.preventDefault();
+			const hidden = loadHiddenSet();
+			if (!hidden.size) return;
+			if (confirm('Reexibir todas as opções da roda?')) {
+				saveHiddenSet(new Set());
+				applyHidden();
+				layoutWheel();
 			}
 		});
 	}
 
 	// Reordenar por seleção (long press) e toque para trocar
 	function bindSelectSwap() {
-		const items = Array.from(sophiaWheel.querySelectorAll('.wheel-item'));
+		const items = getVisibleWheelItems();
 		const n = items.length;
 		let pressTimer = null;
 
@@ -324,6 +430,53 @@
 		const bSlot = Number(b.dataset.slot || 0);
 		a.dataset.slot = String(bSlot);
 		b.dataset.slot = String(aSlot);
+	}
+
+	// ---------- Ocultar/mostrar itens (persistência) ----------
+	function loadHiddenSet() {
+		try {
+			const raw = localStorage.getItem(HIDDEN_KEY);
+			const arr = raw ? JSON.parse(raw) : [];
+			if (!Array.isArray(arr)) return new Set();
+			return new Set(arr);
+		} catch {
+			return new Set();
+		}
+	}
+	function saveHiddenSet(setOrArr) {
+		try {
+			const arr = Array.isArray(setOrArr) ? setOrArr : Array.from(setOrArr);
+			localStorage.setItem(HIDDEN_KEY, JSON.stringify(arr));
+		} catch {}
+	}
+	function applyHidden() {
+		if (!sophiaWheel) return;
+		const hidden = loadHiddenSet();
+		const all = Array.from(sophiaWheel.querySelectorAll('.wheel-item'));
+		all.forEach((el) => {
+			const action = el.getAttribute('data-action') || '';
+			const isHidden = hidden.has(action);
+			el.style.display = isHidden ? 'none' : '';
+			el.dataset.hidden = isHidden ? '1' : '0';
+		});
+	}
+	function compactVisibleSlots() {
+		const items = getVisibleWheelItems().sort((a, b) => {
+			const sa = Number(a.dataset.slot || 0);
+			const sb = Number(b.dataset.slot || 0);
+			return sa - sb;
+		});
+		items.forEach((el, idx) => {
+			el.dataset.slot = String(idx);
+		});
+		// Persistir somente os visíveis; ocultos serão reatribuídos quando exibidos
+		try { saveSlots(items); } catch {}
+	}
+	function getVisibleWheelItems() {
+		if (!sophiaWheel) return [];
+		return Array
+			.from(sophiaWheel.querySelectorAll('.wheel-item'))
+			.filter(el => (el.dataset.hidden !== '1') && (el.style.display !== 'none'));
 	}
 
 	function handleTap(nx, ny) {
@@ -499,7 +652,7 @@
 	// Garantir que o cache seja limpo se o número de botões mudou
 	const wheelItems = document.querySelectorAll('.wheel-item');
 	console.log('[Wheel] Total de botões:', wheelItems.length);
-	const expectedActions = ['calibration', 'scanner', 'planner', 'sketch', 'projects', 'inventory', 'pcb', 'notes'];
+	const expectedActions = ['calibration', 'scanner', 'planner', 'sketch', 'projects', 'inventory', 'pcb', 'notes', 'converter', 'calculator'];
 	const currentActions = Array.from(wheelItems).map(item => item.getAttribute('data-action'));
 	
 	wheelItems.forEach((item, idx) => {
@@ -510,12 +663,15 @@
 	
 	// Verificar se todas as ações esperadas estão presentes
 	const hasAllActions = expectedActions.every(action => currentActions.includes(action));
-	if (!hasAllActions || wheelItems.length !== 7) {
+	if (!hasAllActions || wheelItems.length !== expectedActions.length) {
 		console.log('[Wheel] Limpando cache - ações ou número de botões não correspondem');
 		try {
 			localStorage.removeItem(STORAGE_KEY);
 		} catch {}
 	}
+
+	// Aplicar itens ocultos no load
+	try { applyHidden(); compactVisibleSlots(); } catch {}
 
 })(); 
 

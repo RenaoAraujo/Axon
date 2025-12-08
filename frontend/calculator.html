@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Axon - Calculadora</title>
+	<link rel="stylesheet" href="/static/styles.css" />
+	<script defer src="/static/calculator.js"></script>
+</head>
+<body>
+	<div class="header-trigger-area" id="header-trigger-area"></div>
+	<div class="app-header" id="app-header">
+		<div class="status">
+			<a href="/" class="circle-btn" style="text-decoration: none;">
+				<span class="ring"></span>
+				<span class="label">Home</span>
+			</a>
+		</div>
+		<h1>Calculadora</h1>
+	</div>
+	<main id="screens" class="screen flat" style="padding: 16px;">
+		<section class="calendar-shell" style="max-width: 1800px; margin: 0 auto;">
+			<div class="planner-hero">
+				<h1 class="vibrant-text" style="margin: 0;">Calculadora</h1>
+			</div>
+			<div class="calc-tabs" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid rgba(232,236,241,0.2);">
+				<button class="calc-tab-btn active" data-tab="calculator">Calculadora</button>
+				<button class="calc-tab-btn" data-tab="formulas">Fórmulas</button>
+			</div>
+			<div id="calculator-tab" class="calc-tab-content active">
+			<div class="calculator-container" style="background: rgba(14,20,34,0.95); border-radius: 12px; padding: 20px 40px; box-shadow: 0 8px 24px rgba(0,0,0,0.35);">
+				<div class="calculator-display" style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 20px 30px; margin-bottom: 16px; min-height: 80px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end;">
+					<div id="calc-expression" style="color: rgba(232,236,241,0.6); font-size: 14px; margin-bottom: 8px; min-height: 20px; text-align: right;"></div>
+					<div id="calc-display" style="color: #e8ecf1; font-size: 32px; font-weight: 600; word-break: break-all; text-align: right;">0</div>
+				</div>
+				<div class="calculator-buttons" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 16px;">
+					<!-- Primeira linha: Funções especiais e operadores básicos -->
+					<button class="calc-btn calc-btn-function" data-action="clear">C</button>
+					<button class="calc-btn calc-btn-function" data-action="clear-entry">CE</button>
+					<button class="calc-btn calc-btn-function" data-action="backspace">⌫</button>
+					<button class="calc-btn calc-btn-operator" data-action="divide">÷</button>
+					<button class="calc-btn calc-btn-operator" data-action="multiply">×</button>
+					<button class="calc-btn calc-btn-operator" data-action="subtract">−</button>
+					<button class="calc-btn calc-btn-operator" data-action="add">+</button>
+					
+					<!-- Segunda linha: Números e funções científicas -->
+					<button class="calc-btn calc-btn-number" data-action="7">7</button>
+					<button class="calc-btn calc-btn-number" data-action="8">8</button>
+					<button class="calc-btn calc-btn-number" data-action="9">9</button>
+					<button class="calc-btn calc-btn-function" data-action="sqrt">√</button>
+					<button class="calc-btn calc-btn-function" data-action="square">x²</button>
+					<button class="calc-btn calc-btn-function" data-action="percent">%</button>
+					<button class="calc-btn calc-btn-operator" data-action="power">x^y</button>
+					
+					<!-- Terceira linha: Números e funções trigonométricas -->
+					<button class="calc-btn calc-btn-number" data-action="4">4</button>
+					<button class="calc-btn calc-btn-number" data-action="5">5</button>
+					<button class="calc-btn calc-btn-number" data-action="6">6</button>
+					<button class="calc-btn calc-btn-function" data-action="sin">sin</button>
+					<button class="calc-btn calc-btn-function" data-action="cos">cos</button>
+					<button class="calc-btn calc-btn-function" data-action="tan">tan</button>
+					<button class="calc-btn calc-btn-function" data-action="log">log</button>
+					
+					<!-- Quarta linha: Números e funções adicionais -->
+					<button class="calc-btn calc-btn-number" data-action="1">1</button>
+					<button class="calc-btn calc-btn-number" data-action="2">2</button>
+					<button class="calc-btn calc-btn-number" data-action="3">3</button>
+					<button class="calc-btn calc-btn-function" data-action="pi">π</button>
+					<button class="calc-btn calc-btn-function" data-action="e">e</button>
+					<button class="calc-btn calc-btn-function" data-action="ln">ln</button>
+					<button class="calc-btn calc-btn-function" data-action="1/x">1/x</button>
+					
+					<!-- Quinta linha: Zero, decimal e igual -->
+					<button class="calc-btn calc-btn-number" data-action="0" style="grid-column: span 2;">0</button>
+					<button class="calc-btn calc-btn-number" data-action="decimal">,</button>
+					<button class="calc-btn calc-btn-operator calc-btn-equals" data-action="equals" style="grid-column: span 4;">=</button>
+				</div>
+			</div>
+			</div>
+			<div id="formulas-tab" class="calc-tab-content" style="display: none;">
+				<div class="calculator-container" style="background: rgba(14,20,34,0.95); border-radius: 12px; padding: 20px 40px; box-shadow: 0 8px 24px rgba(0,0,0,0.35);">
+					<h2 style="color: #e8ecf1; margin-bottom: 20px; font-size: 24px;">Fórmulas</h2>
+					<label style="display: block; margin-bottom: 16px;">
+						<span style="color: #e8ecf1; font-size: 16px; margin-bottom: 8px; display: block;">Selecione uma fórmula:</span>
+						<select id="formula-select" class="formula-select">
+							<option value="">-- Selecione uma fórmula --</option>
+							<option value="ohm">Lei de Ohm</option>
+							<option value="voltage-divider">Divisor de Tensão</option>
+							<option value="power">Potência Elétrica</option>
+							<option value="energy-consumption">Consumo ao Longo do Tempo</option>
+							<option value="battery-consumption">Consumo de Bateria</option>
+						</select>
+					</label>
+					<div id="formula-sub-select-container" style="display: none; margin-bottom: 16px;">
+						<label style="display: block;">
+							<span style="color: #e8ecf1; font-size: 16px; margin-bottom: 8px; display: block;" id="formula-sub-select-label"></span>
+							<select id="formula-sub-select" class="formula-select"></select>
+						</label>
+					</div>
+					<div id="formula-display" style="display: none;">
+						<div class="formula-card" style="max-width: 600px;">
+							<div class="formula-title" id="formula-title"></div>
+							<div class="formula-equation" id="formula-equation"></div>
+							<div class="formula-inputs" id="formula-inputs"></div>
+							<div class="formula-result">
+								<div class="formula-result-label">Resultado:</div>
+								<div class="formula-result-value" id="formula-result-value">-</div>
+							</div>
+						</div>
+						<div id="conversion-table" style="display: none; margin-top: 20px;">
+							<div class="formula-card" style="max-width: 600px;">
+								<div class="formula-title" style="margin-bottom: 12px;">Conversões Úteis</div>
+								<div id="conversion-table-content"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+	<style>
+		.calc-tabs {
+			display: flex;
+			gap: 8px;
+			margin-bottom: 20px;
+		}
+		.calc-tab-btn {
+			background: rgba(232,236,241,0.1);
+			border: none;
+			border-bottom: 3px solid transparent;
+			color: rgba(232,236,241,0.7);
+			font-size: 16px;
+			font-weight: 500;
+			padding: 12px 24px;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+		.calc-tab-btn:hover {
+			background: rgba(232,236,241,0.15);
+			color: #e8ecf1;
+		}
+		.calc-tab-btn.active {
+			color: #e8ecf1;
+			border-bottom-color: rgba(100,150,255,0.8);
+			background: rgba(100,150,255,0.1);
+		}
+		.formula-card {
+			background: rgba(0,0,0,0.3);
+			border: 1px solid rgba(232,236,241,0.2);
+			border-radius: 8px;
+			padding: 20px;
+			transition: all 0.2s;
+		}
+		.formula-title {
+			color: #e8ecf1;
+			font-size: 18px;
+			font-weight: 600;
+			margin-bottom: 8px;
+		}
+		.formula-equation {
+			color: rgba(232,236,241,0.8);
+			font-size: 14px;
+			margin-bottom: 12px;
+			font-family: 'Courier New', monospace;
+		}
+		.formula-inputs {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+		.formula-input-group {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.formula-input-group label {
+			color: rgba(232,236,241,0.7);
+			font-size: 14px;
+			min-width: 40px;
+		}
+		.formula-input-group input {
+			flex: 1;
+			background: rgba(0,0,0,0.5);
+			border: 1px solid rgba(232,236,241,0.2);
+			border-radius: 4px;
+			padding: 8px;
+			color: #e8ecf1;
+			font-size: 14px;
+		}
+		.formula-input-group input:focus {
+			outline: none;
+			border-color: rgba(100,150,255,0.5);
+		}
+		.formula-result {
+			margin-top: 12px;
+			padding-top: 12px;
+			border-top: 1px solid rgba(232,236,241,0.1);
+		}
+		.formula-result-label {
+			color: rgba(232,236,241,0.6);
+			font-size: 12px;
+			margin-bottom: 4px;
+		}
+		.formula-result-value {
+			color: rgba(100,200,100,0.9);
+			font-size: 18px;
+			font-weight: 600;
+		}
+		.calc-tab-content {
+			display: none;
+		}
+		.calc-tab-content.active {
+			display: block;
+		}
+		.formula-select {
+			width: 100%;
+			max-width: 500px;
+			background: rgba(0,0,0,0.5);
+			border: 1px solid rgba(232,236,241,0.2);
+			border-radius: 8px;
+			padding: 12px;
+			color: #e8ecf1;
+			font-size: 16px;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+		.formula-select:hover {
+			border-color: rgba(100,150,255,0.5);
+		}
+		.formula-select:focus {
+			outline: none;
+			border-color: rgba(100,150,255,0.8);
+		}
+		.formula-select option {
+			background: rgba(14,20,34,0.95);
+			color: #e8ecf1;
+		}
+		.calc-btn {
+			background: rgba(232,236,241,0.1);
+			border: 1px solid rgba(232,236,241,0.2);
+			color: #e8ecf1;
+			font-size: 18px;
+			font-weight: 500;
+			padding: 16px 20px;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.2s;
+			user-select: none;
+		}
+		.calc-btn:hover {
+			background: rgba(232,236,241,0.2);
+			transform: scale(1.05);
+		}
+		.calc-btn:active {
+			transform: scale(0.95);
+		}
+		.calc-btn-number {
+			background: rgba(232,236,241,0.15);
+		}
+		.calc-btn-operator {
+			background: rgba(100,150,255,0.3);
+		}
+		.calc-btn-operator:hover {
+			background: rgba(100,150,255,0.4);
+		}
+		.calc-btn-function {
+			background: rgba(150,100,255,0.2);
+			font-size: 14px;
+		}
+		.calc-btn-function:hover {
+			background: rgba(150,100,255,0.3);
+		}
+		.calc-btn-equals {
+			background: rgba(100,200,100,0.3);
+		}
+		.calc-btn-equals:hover {
+			background: rgba(100,200,100,0.4);
+		}
+		.header-trigger-area {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 200px;
+			height: 80px;
+			z-index: 1000;
+		}
+		.app-header {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			z-index: 999;
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(-100%);
+			transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+		}
+		.app-header.visible {
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+		}
+	</style>
+</body>
+</html>
+

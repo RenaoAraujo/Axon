@@ -1,0 +1,13 @@
+﻿Cor;1 faixa;2 faixa;3 faixa;multiplicador;tolerancia (%);
+Preto;0;0;0;1;;
+Marrom;1;1;1;10;1;
+Vermelho;2;2;2;100;2;
+Laranja;3;3;3;1000;;
+Amarelo;4;4;4;10000;;
+Verde;5;5;5;100000;0,5;
+Azul;6;6;6;1000000;0,25;
+Violeta;7;7;7;10000000;0,1;
+Cinza;8;8;8;;0,05;
+Branco;9;9;9;;;
+Dourado;;;;0,1;5;
+Prateado;;;;0,01;10;
