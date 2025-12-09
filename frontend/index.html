@@ -8,6 +8,29 @@
 	<script defer src="/static/app.js"></script>
 </head>
 <body>
+	<div id="recording-border" class="recording-border" hidden></div>
+	<button id="mic-btn" class="mic-btn" title="Microfone">
+		<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+			<path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+			<line x1="12" y1="19" x2="12" y2="23"></line>
+			<line x1="8" y1="23" x2="16" y2="23"></line>
+		</svg>
+	</button>
+	<div id="info-widget" class="info-widget">
+		<div class="info-item">
+			<span class="info-label">Hora:</span>
+			<span id="current-time" class="info-value">--:--</span>
+		</div>
+		<div class="info-item">
+			<span class="info-label">Data:</span>
+			<span id="current-date" class="info-value">--</span>
+		</div>
+		<div class="info-item">
+			<span class="info-label">Temp:</span>
+			<span id="current-temp" class="info-value">--°C</span>
+		</div>
+	</div>
 	<div id="hero" class="sophia-hero">
 		<button id="sophia-btn" class="sophia-btn" aria-expanded="false">Axon</button>
 		<div id="orbit-ring" class="orbit-ring" hidden></div>
@@ -41,6 +64,9 @@
 			</button>
 			<button class="wheel-item" data-action="calculator">
 				<span class="ring"></span><span class="label">Calculadora</span>
+			</button>
+			<button class="wheel-item" data-action="library">
+				<span class="ring"></span><span class="label">Biblioteca</span>
 			</button>
 		</div>
 		<div id="home-alerts" class="planner-alerts home-wheel-alerts" hidden></div>

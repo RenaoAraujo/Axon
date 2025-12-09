@@ -1,4 +1,5 @@
 (() => {
+	console.log('[Projects] 📦 Script projects.js carregado!');
 	const STORAGE_KEY = 'axonProjects.v1';
 	
 	// Elementos DOM - Biblioteca
@@ -42,13 +43,25 @@
 	
 	// Inicialização
 	function init() {
+		console.log('[Projects] 🚀 Inicializando módulo de projetos...');
+		
+		// Garantir que o modal esteja oculto
+		const modal = document.getElementById('custom-modal');
+		if (modal) {
+			modal.hidden = true;
+			modal.style.display = 'none';
+		}
+		
 		loadProjects();
 		setupEventListeners();
 		renderProjects();
 		updateStats();
+		console.log('[Projects] ✅ Inicialização concluída');
 	}
 	
 	function setupEventListeners() {
+		console.log('[Projects] 📝 Configurando event listeners...');
+		console.log('[Projects] btnSaveProject existe?', !!btnSaveProject);
 		// Biblioteca
 		btnNewProject?.addEventListener('click', createNewProject);
 		searchInput?.addEventListener('input', handleSearch);
@@ -58,7 +71,15 @@
 		
 		// Detalhes
 		btnBackToLibrary?.addEventListener('click', backToLibrary);
-		btnSaveProject?.addEventListener('click', saveCurrentProject);
+		if (btnSaveProject) {
+			console.log('[Projects] ✅ Botão de salvar encontrado, adicionando listener');
+			btnSaveProject.addEventListener('click', () => {
+				console.log('[Projects] 🔘 Botão de salvar CLICADO!');
+				saveCurrentProject();
+			});
+		} else {
+			console.error('[Projects] ❌ Botão btn-save-project não encontrado!');
+		}
 		btnDeleteProject?.addEventListener('click', deleteCurrentProject);
 		btnFavorite?.addEventListener('click', toggleFavorite);
 		
@@ -79,6 +100,10 @@
 		// Materiais (form sempre visível, sem modal)
 		document.getElementById('btn-add-material')?.addEventListener('click', addMaterial);
 		document.getElementById('btn-clear-material')?.addEventListener('click', clearMaterialForm);
+		
+		// Precificação
+		document.getElementById('btn-add-expense')?.addEventListener('click', addExpense);
+		document.getElementById('btn-clear-expense')?.addEventListener('click', clearExpenseForm);
 		
 		// Arquivos
 		document.getElementById('btn-upload-file')?.addEventListener('click', () => {
@@ -128,6 +153,7 @@
 			},
 			tasks: [],
 			materials: [],
+			expenses: [],
 			files: [],
 			logs: [],
 			versions: []
@@ -181,6 +207,7 @@
 		renderTags(project);
 		renderTasks(project);
 		renderMaterials(project);
+		renderExpenses(project);
 		renderFiles(project);
 		renderLogs(project);
 		renderVersions(project);
@@ -208,11 +235,22 @@
 		currentProjectId = null;
 	}
 	
-	function saveCurrentProject() {
-		if (!currentProjectId) return;
+	async function saveCurrentProject() {
+		console.log('[Projects] 🔵 saveCurrentProject() chamada!');
+		console.log('[Projects] currentProjectId:', currentProjectId);
+		
+		if (!currentProjectId) {
+			console.warn('[Projects] ⚠️ Sem currentProjectId, abortando');
+			return;
+		}
 		
 		const project = projects.find(p => p.id === currentProjectId);
-		if (!project) return;
+		console.log('[Projects] Projeto encontrado:', project ? 'SIM' : 'NÃO');
+		
+		if (!project) {
+			console.warn('[Projects] ⚠️ Projeto não encontrado, abortando');
+			return;
+		}
 		
 		project.name = projectName.value.trim();
 		project.area = projectArea.value;
@@ -220,8 +258,67 @@
 		project.description = projectDescription.value.trim();
 		project.dates.modified = Date.now();
 		
-		saveProjects();
-		showNotification('Projeto salvo com sucesso!');
+		// Salvar no localStorage primeiro
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+		} catch (e) {
+			console.error('Erro ao salvar no localStorage:', e);
+		}
+		
+		// Salvar diretamente no app.db
+		try {
+			// Validar que o projeto tem ID
+			if (!project.id) {
+				console.error('[Projects] Projeto sem ID!', project);
+				showNotification('Erro: Projeto sem ID', 'error');
+				return;
+			}
+			
+			const payload = { projects: [project] };
+			console.log('[Projects] Enviando projeto para backend:', {
+				id: project.id,
+				name: project.name,
+				payloadSize: JSON.stringify(payload).length
+			});
+			
+			const response = await fetch('/api/import/projects', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			});
+			
+			// Verificar status antes de tentar parsear JSON
+			const responseText = await response.text();
+			console.log('[Projects] Resposta raw do backend:', responseText);
+			console.log('[Projects] Status HTTP:', response.status, response.statusText);
+			
+			let responseData;
+			try {
+				responseData = JSON.parse(responseText);
+			} catch (e) {
+				console.error('[Projects] Erro ao parsear resposta JSON:', e);
+				showNotification('Erro: Resposta inválida do servidor', 'error');
+				return;
+			}
+			
+			console.log('[Projects] Resposta parseada:', responseData);
+			
+			if (response.ok && responseData.ok !== false) {
+				if (responseData.count > 0) {
+					showNotification(`✅ Projeto salvo com sucesso no banco de dados! (${responseData.count} projeto(s))`);
+					console.log(`[Projects] ✅ Projeto ${project.id} salvo no app.db`);
+				} else {
+					console.warn('[Projects] ⚠️ Backend retornou count=0');
+					showNotification('⚠️ Aviso: Nenhum projeto foi salvo', 'error');
+				}
+			} else {
+				console.error('[Projects] Erro ao salvar no backend:', responseData);
+				showNotification(`❌ Erro ao salvar: ${responseData.error || 'Erro desconhecido'}`, 'error');
+			}
+		} catch (e) {
+			console.error('[Projects] Erro ao salvar projeto:', e);
+			showNotification('❌ Erro ao salvar no banco de dados', 'error');
+		}
 	}
 	
 	function autoSave() {
@@ -458,8 +555,18 @@
 				alta: '#EF4444'
 			};
 			
+			const status = task.completed ? 'concluido' : 'em-processo';
+			const statusColor = task.completed ? '#10B981' : '#EF4444';
+			const statusText = task.completed ? 'Concluído' : 'Em processo';
+			
 			taskEl.innerHTML = `
-				<input type="checkbox" ${task.completed ? 'checked' : ''} class="task-checkbox" />
+				<div class="task-status-container">
+					<div class="task-status-dot" style="background-color: ${statusColor}"></div>
+					<select class="task-status-select">
+						<option value="em-processo" ${!task.completed ? 'selected' : ''}>Em processo</option>
+						<option value="concluido" ${task.completed ? 'selected' : ''}>Concluído</option>
+					</select>
+				</div>
 				<div class="task-content">
 					<div class="task-title">${escapeHtml(task.title)}</div>
 					${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
@@ -471,9 +578,21 @@
 				<button class="task-delete" title="Excluir">🗑️</button>
 			`;
 			
-			taskEl.querySelector('.task-checkbox').addEventListener('change', (e) => {
-				task.completed = e.target.checked;
+			const statusSelect = taskEl.querySelector('.task-status-select');
+			const statusDot = taskEl.querySelector('.task-status-dot');
+			
+			statusSelect.addEventListener('change', (e) => {
+				const newStatus = e.target.value;
+				task.completed = newStatus === 'concluido';
 				taskEl.classList.toggle('completed', task.completed);
+				
+				// Atualizar cor da bolinha
+				if (task.completed) {
+					statusDot.style.backgroundColor = '#10B981';
+				} else {
+					statusDot.style.backgroundColor = '#EF4444';
+				}
+				
 				updateProgress(project);
 				saveProjects();
 			});
@@ -497,22 +616,35 @@
 		const project = projects.find(p => p.id === currentProjectId);
 		if (!project) return;
 		
-		const title = prompt('Nome da tarefa:');
-		if (!title) return;
-		
-		const task = {
-			id: uid(),
-			title: title.trim(),
-			description: '',
-			completed: false,
-			priority: 'media',
-			deadline: null,
-			createdAt: Date.now()
-		};
-		
-		project.tasks.push(task);
-		renderTasks(project);
-		saveProjects();
+		showModal({
+			title: 'Nova Tarefa',
+			message: 'Digite o nome da tarefa:',
+			inputs: [
+				{ type: 'text', id: 'task-title', placeholder: 'Nome da tarefa', required: true }
+			],
+			onConfirm: (values) => {
+				const title = values['task-title']?.trim();
+				if (!title) {
+					showNotification('Informe o nome da tarefa', 'error');
+					return false;
+				}
+				
+				const task = {
+					id: uid(),
+					title: title,
+					description: '',
+					completed: false,
+					priority: 'media',
+					deadline: null,
+					createdAt: Date.now()
+				};
+				
+				project.tasks.push(task);
+				renderTasks(project);
+				saveProjects();
+				return true;
+			}
+		});
 	}
 	
 	function calculateProgress(project) {
@@ -577,7 +709,7 @@
 		// Leitura do formulário simples (sem modal)
 		const name = (manualNameInput?.value || '').trim();
 		if (!name) {
-			alert('Informe o nome do material.');
+			showNotification('Informe o nome do material', 'error');
 			return;
 		}
 		const qtyVal = manualQtyInput?.value || '';
@@ -733,6 +865,117 @@
 		saveProjects();
 	}
 	
+	// ========== PRECIFICAÇÃO ==========
+	
+	function renderExpenses(project) {
+		if (!project) return;
+		
+		const container = document.getElementById('expenses-list');
+		if (!container) return;
+		
+		container.innerHTML = '';
+		
+		if (!project.expenses || project.expenses.length === 0) {
+			container.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: rgba(232,236,241,0.5);">Nenhuma despesa registrada</td></tr>';
+			updateExpensesTotal(project);
+			return;
+		}
+		
+		project.expenses.forEach(expense => {
+			const row = document.createElement('tr');
+			row.className = 'expense-row';
+			row.dataset.id = expense.id;
+			
+			const date = expense.date ? new Date(expense.date).toLocaleDateString('pt-BR') : '-';
+			const value = expense.value ? parseFloat(expense.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
+			
+			row.innerHTML = `
+				<td>${escapeHtml(expense.description || 'Sem descrição')}</td>
+				<td style="font-weight: 600;">${value}</td>
+				<td>${escapeHtml(expense.category || '-')}</td>
+				<td>${date}</td>
+				<td>
+					<button class="expense-delete" title="Excluir despesa">🗑️</button>
+				</td>
+			`;
+			
+			row.querySelector('.expense-delete').addEventListener('click', () => {
+				project.expenses = project.expenses.filter(e => e.id !== expense.id);
+				renderExpenses(project);
+				saveProjects();
+			});
+			
+			container.appendChild(row);
+		});
+		
+		updateExpensesTotal(project);
+	}
+	
+	function addExpense() {
+		if (!currentProjectId) return;
+		
+		const project = projects.find(p => p.id === currentProjectId);
+		if (!project) return;
+		
+		const description = document.getElementById('expense-description')?.value.trim();
+		const value = document.getElementById('expense-value')?.value;
+		const category = document.getElementById('expense-category')?.value.trim();
+		const date = document.getElementById('expense-date')?.value;
+		
+		if (!description) {
+			alert('Informe a descrição da despesa.');
+			return;
+		}
+		
+		if (!value || parseFloat(value) <= 0) {
+			alert('Informe um valor válido.');
+			return;
+		}
+		
+		const expense = {
+			id: uid(),
+			description: description,
+			value: parseFloat(value),
+			category: category || '',
+			date: date || new Date().toISOString().split('T')[0],
+			createdAt: Date.now()
+		};
+		
+		if (!project.expenses) project.expenses = [];
+		project.expenses.push(expense);
+		renderExpenses(project);
+		clearExpenseForm();
+		saveProjects();
+	}
+	
+	function clearExpenseForm() {
+		const descInput = document.getElementById('expense-description');
+		const valueInput = document.getElementById('expense-value');
+		const catInput = document.getElementById('expense-category');
+		const dateInput = document.getElementById('expense-date');
+		
+		if (descInput) descInput.value = '';
+		if (valueInput) valueInput.value = '';
+		if (catInput) catInput.value = '';
+		if (dateInput) dateInput.value = '';
+	}
+	
+	function updateExpensesTotal(project) {
+		const totalEl = document.getElementById('total-expenses');
+		if (!totalEl) return;
+		
+		if (!project.expenses || project.expenses.length === 0) {
+			totalEl.textContent = 'R$ 0,00';
+			return;
+		}
+		
+		const total = project.expenses.reduce((sum, expense) => {
+			return sum + (parseFloat(expense.value) || 0);
+		}, 0);
+		
+		totalEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+	}
+	
 	// ========== VERSÕES ==========
 	
 	function renderVersions(project) {
@@ -781,23 +1024,41 @@
 		const project = projects.find(p => p.id === currentProjectId);
 		if (!project) return;
 		
-		const number = prompt('Número da versão (ex: v1.0, v2.1):');
-		if (!number) return;
-		
-		const description = prompt('Descrição da versão:');
-		if (!description) return;
-		
-		const version = {
-			id: uid(),
-			number: number.trim(),
-			description: description.trim(),
-			changes: '',
-			date: Date.now()
-		};
-		
-		project.versions.push(version);
-		renderVersions(project);
-		saveProjects();
+		showModal({
+			title: 'Nova Versão',
+			message: 'Preencha os dados da versão:',
+			inputs: [
+				{ type: 'text', id: 'version-number', placeholder: 'Número da versão (ex: v1.0, v2.1)', required: true },
+				{ type: 'textarea', id: 'version-description', placeholder: 'Descrição da versão', required: true }
+			],
+			onConfirm: (values) => {
+				const number = values['version-number']?.trim();
+				const description = values['version-description']?.trim();
+				
+				if (!number) {
+					showNotification('Informe o número da versão', 'error');
+					return false;
+				}
+				
+				if (!description) {
+					showNotification('Informe a descrição da versão', 'error');
+					return false;
+				}
+				
+				const version = {
+					id: uid(),
+					number: number,
+					description: description,
+					changes: '',
+					date: Date.now()
+				};
+				
+				project.versions.push(version);
+				renderVersions(project);
+				saveProjects();
+				return true;
+			}
+		});
 	}
 	
 	// ========== ABAS ==========
@@ -812,6 +1073,14 @@
 		document.querySelectorAll('.tab-content').forEach(content => {
 			content.hidden = content.id !== `tab-${tabName}`;
 		});
+		
+		// Se for a aba de precificação, definir data padrão
+		if (tabName === 'pricing') {
+			const dateInput = document.getElementById('expense-date');
+			if (dateInput && !dateInput.value) {
+				dateInput.value = new Date().toISOString().split('T')[0];
+			}
+		}
 	}
 	
 	// ========== FILTROS ==========
@@ -890,6 +1159,156 @@
 		return div.innerHTML;
 	}
 	
+	// ========== MODAL CUSTOMIZADO ==========
+	
+	let currentModalResolve = null;
+	
+	function showModal(config) {
+		const modal = document.getElementById('custom-modal');
+		const modalTitle = document.getElementById('modal-title');
+		const modalMessage = document.getElementById('modal-message');
+		const modalInputs = document.getElementById('modal-inputs');
+		const modalConfirm = document.getElementById('modal-confirm');
+		const modalCancel = document.getElementById('modal-cancel');
+		const modalClose = document.getElementById('modal-close');
+		
+		if (!modal) return Promise.resolve(null);
+		
+		// Configurar título e mensagem
+		modalTitle.textContent = config.title || 'Confirmação';
+		modalMessage.textContent = config.message || '';
+		modalMessage.style.display = config.message ? 'block' : 'none';
+		
+		// Limpar inputs anteriores
+		modalInputs.innerHTML = '';
+		
+		// Criar inputs
+		const inputValues = {};
+		if (config.inputs && config.inputs.length > 0) {
+			config.inputs.forEach(inputConfig => {
+				const inputGroup = document.createElement('div');
+				inputGroup.className = 'modal-input-group';
+				
+				if (inputConfig.type === 'textarea') {
+					const textarea = document.createElement('textarea');
+					textarea.id = inputConfig.id;
+					textarea.placeholder = inputConfig.placeholder || '';
+					textarea.required = inputConfig.required || false;
+					textarea.className = 'modal-input';
+					textarea.rows = 3;
+					inputGroup.appendChild(textarea);
+					inputValues[inputConfig.id] = textarea;
+				} else {
+					const input = document.createElement('input');
+					input.type = inputConfig.type || 'text';
+					input.id = inputConfig.id;
+					input.placeholder = inputConfig.placeholder || '';
+					input.required = inputConfig.required || false;
+					input.className = 'modal-input';
+					inputGroup.appendChild(input);
+					inputValues[inputConfig.id] = input;
+				}
+				
+				modalInputs.appendChild(inputGroup);
+			});
+		}
+		
+		// Mostrar modal
+		modal.hidden = false;
+		modal.style.display = 'flex';
+		document.body.style.overflow = 'hidden';
+		
+		// Focar no primeiro input
+		if (config.inputs && config.inputs.length > 0) {
+			setTimeout(() => {
+				const firstInput = document.getElementById(config.inputs[0].id);
+				if (firstInput) firstInput.focus();
+			}, 100);
+		}
+		
+		// Retornar Promise
+		return new Promise((resolve) => {
+			currentModalResolve = resolve;
+			
+			const handleConfirm = () => {
+				// Coletar valores dos inputs
+				const values = {};
+				Object.keys(inputValues).forEach(key => {
+					const input = inputValues[key];
+					values[key] = input.value;
+				});
+				
+				// Chamar callback de confirmação
+				if (config.onConfirm) {
+					const result = config.onConfirm(values);
+					if (result !== false) {
+						closeModal();
+						resolve(values);
+					}
+				} else {
+					closeModal();
+					resolve(values);
+				}
+			};
+			
+			const handleCancel = () => {
+				closeModal();
+				resolve(null);
+			};
+			
+			// Remover listeners anteriores
+			const newConfirm = modalConfirm.cloneNode(true);
+			modalConfirm.parentNode.replaceChild(newConfirm, modalConfirm);
+			const newCancel = modalCancel.cloneNode(true);
+			modalCancel.parentNode.replaceChild(newCancel, modalCancel);
+			const newClose = modalClose.cloneNode(true);
+			modalClose.parentNode.replaceChild(newClose, modalClose);
+			
+			// Adicionar novos listeners
+			document.getElementById('modal-confirm').addEventListener('click', handleConfirm);
+			document.getElementById('modal-cancel').addEventListener('click', handleCancel);
+			document.getElementById('modal-close').addEventListener('click', handleCancel);
+			
+			// Fechar ao clicar no overlay
+			const overlay = document.querySelector('.modal-overlay');
+			if (overlay) {
+				// Remover listeners anteriores
+				const newOverlay = overlay.cloneNode(true);
+				overlay.parentNode.replaceChild(newOverlay, overlay);
+				newOverlay.addEventListener('click', handleCancel);
+			}
+			
+			// Fechar com ESC
+			const handleEsc = (e) => {
+				if (e.key === 'Escape') {
+					handleCancel();
+					document.removeEventListener('keydown', handleEsc);
+				}
+			};
+			document.addEventListener('keydown', handleEsc);
+			
+			// Enter no input confirma
+			Object.values(inputValues).forEach(input => {
+				input.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter' && !e.shiftKey && input.tagName !== 'TEXTAREA') {
+						e.preventDefault();
+						handleConfirm();
+					}
+				});
+			});
+		});
+	}
+	
+	function closeModal() {
+		const modal = document.getElementById('custom-modal');
+		if (modal) {
+			modal.hidden = true;
+			modal.style.display = 'none';
+			document.body.style.overflow = '';
+		}
+		currentModalResolve = null;
+	}
+	
 	function debounce(func, wait) {
 		let timeout;
 		return function executedFunction(...args) {
@@ -906,9 +1325,14 @@
 		return Date.now().toString(36) + Math.random().toString(36).slice(2);
 	}
 	
-	function showNotification(message) {
+	function showNotification(message, type = 'success') {
 		// Implementar toast notification
-		console.log(message);
+		if (type === 'error') {
+			console.error(message);
+		} else {
+			console.log(message);
+		}
+		// TODO: Implementar toast visual
 	}
 	
 	// ========== STORAGE ==========
@@ -916,10 +1340,68 @@
 	function saveProjects() {
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+			// Sincronizar com o backend
+			syncProjectsToBackend();
 		} catch (e) {
 			console.error('Erro ao salvar projetos:', e);
 		}
 	}
+	
+	async function syncProjectsToBackend() {
+		try {
+			const response = await fetch('/api/import/projects', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ projects: projects })
+			});
+			if (response.ok) {
+				const data = await response.json();
+				console.log(`[Projects] Sincronizados ${data.count} projetos com o backend`);
+			} else {
+				console.error('[Projects] Erro ao sincronizar com o backend:', await response.text());
+			}
+		} catch (e) {
+			console.error('[Projects] Erro ao sincronizar projetos:', e);
+		}
+	}
+	
+	// Função para importar projetos do localStorage para o backend (pode ser chamada manualmente)
+	async function importProjectsToBackend() {
+		try {
+			const raw = localStorage.getItem(STORAGE_KEY);
+			if (!raw) {
+				console.log('[Projects] Nenhum projeto encontrado no localStorage');
+				return;
+			}
+			const localProjects = JSON.parse(raw);
+			if (!Array.isArray(localProjects) || localProjects.length === 0) {
+				console.log('[Projects] Nenhum projeto para importar');
+				return;
+			}
+			
+			const response = await fetch('/api/import/projects', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ projects: localProjects })
+			});
+			
+			if (response.ok) {
+				const data = await response.json();
+				console.log(`[Projects] ✅ ${data.count} projetos importados com sucesso!`);
+				showNotification(`✅ ${data.count} projetos importados para o backend!`);
+			} else {
+				const error = await response.text();
+				console.error('[Projects] Erro ao importar:', error);
+				showNotification('❌ Erro ao importar projetos', 'error');
+			}
+		} catch (e) {
+			console.error('[Projects] Erro ao importar projetos:', e);
+			showNotification('❌ Erro ao importar projetos', 'error');
+		}
+	}
+	
+	// Expor função globalmente para poder ser chamada do console
+	window.importProjectsToBackend = importProjectsToBackend;
 	
 	function loadProjects() {
 		try {
@@ -936,7 +1418,40 @@
 		}
 	}
 	
+	// Expor funções globalmente para debug
+	window.projectsModule = {
+		saveCurrentProject,
+		projects,
+		currentProjectId,
+		testSave: async function() {
+			console.log('[TEST] Testando salvamento...');
+			console.log('[TEST] Projetos carregados:', projects.length);
+			console.log('[TEST] currentProjectId:', currentProjectId);
+			if (projects.length === 0) {
+				console.error('[TEST] Nenhum projeto carregado!');
+				return;
+			}
+			if (!currentProjectId) {
+				console.warn('[TEST] Nenhum projeto aberto. Abrindo primeiro projeto...');
+				if (projects.length > 0) {
+					openProject(projects[0].id);
+					await new Promise(resolve => setTimeout(resolve, 100));
+				}
+			}
+			await saveCurrentProject();
+		}
+	};
+	
 	// Iniciar
-	init();
+	try {
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', init);
+		} else {
+			init();
+		}
+		console.log('[Projects] ✅ Módulo carregado. Use window.projectsModule.testSave() para testar.');
+	} catch (e) {
+		console.error('[Projects] ❌ Erro ao inicializar:', e);
+	}
 })();
 

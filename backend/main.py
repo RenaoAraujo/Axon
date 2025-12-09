@@ -222,6 +222,11 @@ async def calculator_page() -> FileResponse:
 	page = FRONTEND_DIR / "calculator.html"
 	return FileResponse(str(page))
 
+@app.get("/library")
+async def library_page() -> FileResponse:
+	page = FRONTEND_DIR / "library.html"
+	return FileResponse(str(page))
+
 @app.get("/notes")
 async def notes_page() -> FileResponse:
 	page = FRONTEND_DIR / "notes.html"
@@ -905,6 +910,38 @@ async def list_projects():
 		return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.post("/api/import/projects")
+async def import_projects(payload: dict):
+	"""
+	Importa projetos do localStorage do frontend para o app.db.
+	Body:
+	{
+		"projects": [ { id: "...", ... }, ... ]
+	}
+	Salva/atualiza os projetos (formato atual do frontend) como JSON em app.db.
+	"""
+	try:
+		projects = payload.get("projects")
+		print(f"[Backend] Recebido payload com {len(projects) if isinstance(projects, list) else 0} projetos")
+		if not isinstance(projects, list):
+			print(f"[Backend] Erro: Campo 'projects' não é lista, tipo: {type(projects)}")
+			return JSONResponse({"error": "Campo 'projects' deve ser lista"}, status_code=400)
+		if len(projects) == 0:
+			print("[Backend] Aviso: Lista de projetos vazia")
+			return JSONResponse({"error": "Lista de projetos vazia"}, status_code=400)
+		count, ids = bulk_upsert_json("projects", projects, id_key="id")
+		print(f"[Backend] ✅ Salvos {count} projetos no app.db: {ids}")  # Debug
+		if count == 0:
+			print("[Backend] ⚠️ AVISO: Nenhum projeto foi salvo!")
+			return JSONResponse({"error": "Nenhum projeto foi salvo. Verifique os logs."}, status_code=500)
+		return JSONResponse({"ok": True, "count": count, "ids": ids})
+	except Exception as e:
+		print(f"[Backend] ❌ Erro ao salvar projetos: {e}")  # Debug
+		import traceback
+		traceback.print_exc()
+		return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.post("/api/import/inventory")
 async def import_inventory(payload: dict):
 	"""
@@ -953,7 +990,8 @@ async def import_planner(payload: dict):
 		# Substituição simples dos eventos atuais pelos fornecidos
 		# Estratégia: limpar e reescrever
 		from .db import get_connection  # import local para evitar ciclos no topo
-		with get_connection() as conn:
+		conn = get_connection()
+		try:
 			conn.execute("DELETE FROM calendar_events")
 			for ev in events:
 				if not isinstance(ev, dict):
@@ -971,8 +1009,18 @@ async def import_planner(payload: dict):
 					""",
 					(ev_id, json.dumps(ev, ensure_ascii=False)),
 				)
+			conn.commit()
+			print(f"[Backend] ✅ Planner salvo: state + {len(events)} eventos")
+		except Exception as e:
+			conn.rollback()
+			raise e
+		finally:
+			conn.close()
 		return JSONResponse({"ok": True, "events_count": len(events)})
 	except Exception as e:
+		print(f"[Backend] ❌ Erro ao salvar planner: {e}")
+		import traceback
+		traceback.print_exc()
 		return JSONResponse({"error": str(e)}, status_code=500)
 
 

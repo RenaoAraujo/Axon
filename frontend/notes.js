@@ -8,6 +8,8 @@
 	const noteContent = document.getElementById('note-content');
 	const noteDate = document.getElementById('note-date');
 	const btnNewNote = document.getElementById('btn-new-note');
+	const btnSaveNote = document.getElementById('btn-save-note');
+	const btnExportNote = document.getElementById('btn-export-note');
 	const btnDeleteNote = document.getElementById('btn-delete-note');
 	const searchInput = document.getElementById('search-notes');
 	const sortSelect = document.getElementById('sort-notes');
@@ -81,20 +83,31 @@
 		saveNotes();
 		renderNotesList();
 		selectNote(newNote.id);
+		updateSaveButton(); // Garantir que o botão seja habilitado
 		noteTitle?.focus();
 	}
 
 	function deleteCurrentNote() {
 		if (!currentNoteId) return;
 		
-		if (!confirm('Tem certeza que deseja excluir esta nota?')) return;
+		const note = notes.find(n => n.id === currentNoteId);
+		const noteTitle = note?.title || 'Sem título';
 		
-		notes = notes.filter(n => n.id !== currentNoteId);
-		saveNotes();
-		currentNoteId = null;
-		renderNotesList();
-		showEditorEmpty();
-		updateDeleteButton();
+		showModal({
+			title: 'Excluir Nota',
+			message: `Tem certeza que deseja excluir a nota "${noteTitle}"? Esta ação não pode ser desfeita.`,
+			inputs: [],
+			onConfirm: () => {
+				notes = notes.filter(n => n.id !== currentNoteId);
+				saveNotes();
+				currentNoteId = null;
+				renderNotesList();
+				showEditorEmpty();
+				updateDeleteButton();
+				updateSaveButton();
+				return true;
+			}
+		});
 	}
 
 	function selectNote(noteId) {
@@ -111,6 +124,7 @@
 		editorContent.hidden = false;
 		editorEmpty.hidden = true;
 		updateDeleteButton();
+		updateSaveButton();
 		
 		// Destacar nota selecionada na lista
 		document.querySelectorAll('.note-item').forEach(item => {
@@ -118,7 +132,7 @@
 		});
 	}
 
-	function saveCurrentNote() {
+	async function saveCurrentNote() {
 		if (!currentNoteId) return;
 		
 		const note = notes.find(n => n.id === currentNoteId);
@@ -127,6 +141,39 @@
 		note.title = noteTitle.value.trim();
 		note.content = noteContent.value.trim();
 		note.updatedAt = Date.now();
+		
+		// Salvar no localStorage primeiro
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+		} catch (e) {
+			console.error('Erro ao salvar no localStorage:', e);
+		}
+		
+		// Salvar diretamente no app.db
+		try {
+			const response = await fetch('/api/import/notes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ notes: [note] })
+			});
+			
+			const responseText = await response.text();
+			let responseData;
+			try {
+				responseData = JSON.parse(responseText);
+			} catch (e) {
+				console.error('[Notes] Erro ao parsear resposta:', e);
+				return;
+			}
+			
+			if (response.ok && responseData.ok !== false && responseData.count > 0) {
+				console.log(`[Notes] ✅ Nota ${note.id} salva no app.db`);
+			} else {
+				console.error('[Notes] Erro ao salvar no backend:', responseData);
+			}
+		} catch (e) {
+			console.error('[Notes] Erro ao salvar nota:', e);
+		}
 		
 		saveNotes();
 		renderNotesList();
@@ -207,12 +254,47 @@
 		editorContent.hidden = true;
 		editorEmpty.hidden = false;
 		updateDeleteButton();
+		updateSaveButton();
 	}
 
 	function updateDeleteButton() {
 		if (btnDeleteNote) {
 			btnDeleteNote.disabled = !currentNoteId;
 		}
+	}
+	
+	function updateSaveButton() {
+		if (btnSaveNote) {
+			const shouldDisable = !currentNoteId;
+			btnSaveNote.disabled = shouldDisable;
+			console.log('[Notes] Botão salvar:', shouldDisable ? 'DESABILITADO' : 'HABILITADO', 'currentNoteId:', currentNoteId);
+		}
+		if (btnExportNote) {
+			btnExportNote.disabled = !currentNoteId;
+		}
+	}
+	
+	function exportCurrentNote() {
+		if (!currentNoteId) return;
+		
+		const note = notes.find(n => n.id === currentNoteId);
+		if (!note) return;
+		
+		// Criar conteúdo do arquivo TXT - apenas o título
+		const content = note.title || 'Sem título';
+		
+		// Criar blob e fazer download
+		const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `${(note.title || 'nota').replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.txt`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+		
+		console.log('[Notes] ✅ Nota exportada como TXT');
 	}
 
 	function keepCursorVisible(textarea) {
@@ -310,6 +392,189 @@
 		}
 	}
 
+	// ========== MODAL CUSTOMIZADO ==========
+	
+	let currentModalResolve = null;
+	
+	function showModal(config) {
+		const modal = document.getElementById('custom-modal');
+		const modalTitle = document.getElementById('modal-title');
+		const modalMessage = document.getElementById('modal-message');
+		const modalInputs = document.getElementById('modal-inputs');
+		const modalConfirm = document.getElementById('modal-confirm');
+		const modalCancel = document.getElementById('modal-cancel');
+		const modalClose = document.getElementById('modal-close');
+		
+		if (!modal) return Promise.resolve(null);
+		
+		// Configurar título e mensagem
+		modalTitle.textContent = config.title || 'Confirmação';
+		modalMessage.textContent = config.message || '';
+		modalMessage.style.display = config.message ? 'block' : 'none';
+		
+		// Limpar inputs anteriores
+		modalInputs.innerHTML = '';
+		
+		// Criar inputs
+		const inputValues = {};
+		if (config.inputs && config.inputs.length > 0) {
+			config.inputs.forEach(inputConfig => {
+				const inputGroup = document.createElement('div');
+				inputGroup.className = 'modal-input-group';
+				
+				if (inputConfig.type === 'select') {
+					const select = document.createElement('select');
+					select.id = inputConfig.id;
+					select.className = 'modal-input';
+					select.required = inputConfig.required || false;
+					
+					if (inputConfig.options && Array.isArray(inputConfig.options)) {
+						inputConfig.options.forEach(option => {
+							const optionEl = document.createElement('option');
+							optionEl.value = option.value;
+							optionEl.textContent = option.label || option.value;
+							select.appendChild(optionEl);
+						});
+					}
+					
+					inputGroup.appendChild(select);
+					inputValues[inputConfig.id] = select;
+				} else if (inputConfig.type === 'textarea') {
+					const textarea = document.createElement('textarea');
+					textarea.id = inputConfig.id;
+					textarea.placeholder = inputConfig.placeholder || '';
+					textarea.required = inputConfig.required || false;
+					textarea.className = 'modal-input';
+					textarea.rows = 3;
+					inputGroup.appendChild(textarea);
+					inputValues[inputConfig.id] = textarea;
+				} else {
+					const input = document.createElement('input');
+					input.type = inputConfig.type || 'text';
+					input.id = inputConfig.id;
+					input.placeholder = inputConfig.placeholder || '';
+					input.required = inputConfig.required || false;
+					input.className = 'modal-input';
+					inputGroup.appendChild(input);
+					inputValues[inputConfig.id] = input;
+				}
+				
+				modalInputs.appendChild(inputGroup);
+			});
+		}
+		
+		// Mostrar modal
+		modal.hidden = false;
+		modal.style.display = 'flex';
+		document.body.style.overflow = 'hidden';
+		
+		// Focar no primeiro input
+		if (config.inputs && config.inputs.length > 0) {
+			setTimeout(() => {
+				const firstInput = document.getElementById(config.inputs[0].id);
+				if (firstInput) firstInput.focus();
+			}, 100);
+		}
+		
+		// Retornar Promise
+		return new Promise((resolve) => {
+			currentModalResolve = resolve;
+			
+			const handleConfirm = () => {
+				// Coletar valores dos inputs
+				const values = {};
+				Object.keys(inputValues).forEach(key => {
+					const input = inputValues[key];
+					values[key] = input.value;
+				});
+				
+				// Chamar callback de confirmação
+				if (config.onConfirm) {
+					const result = config.onConfirm(values);
+					if (result !== false) {
+						closeModal();
+						resolve(values);
+					}
+				} else {
+					closeModal();
+					resolve(values);
+				}
+			};
+			
+			const handleCancel = () => {
+				closeModal();
+				resolve(null);
+			};
+			
+			// Remover listeners anteriores
+			const newConfirm = modalConfirm.cloneNode(true);
+			modalConfirm.parentNode.replaceChild(newConfirm, modalConfirm);
+			const newCancel = modalCancel.cloneNode(true);
+			modalCancel.parentNode.replaceChild(newCancel, modalCancel);
+			const newClose = modalClose.cloneNode(true);
+			modalClose.parentNode.replaceChild(newClose, modalClose);
+			
+			// Adicionar novos listeners
+			document.getElementById('modal-confirm').addEventListener('click', handleConfirm);
+			document.getElementById('modal-cancel').addEventListener('click', handleCancel);
+			document.getElementById('modal-close').addEventListener('click', handleCancel);
+			
+			// Fechar ao clicar no overlay
+			const overlay = document.querySelector('.modal-overlay');
+			if (overlay) {
+				const newOverlay = overlay.cloneNode(true);
+				overlay.parentNode.replaceChild(newOverlay, overlay);
+				newOverlay.addEventListener('click', handleCancel);
+			}
+			
+			// Fechar com ESC
+			const handleEsc = (e) => {
+				if (e.key === 'Escape') {
+					handleCancel();
+					document.removeEventListener('keydown', handleEsc);
+				}
+			};
+			document.addEventListener('keydown', handleEsc);
+			
+			// Enter no input confirma (exceto textarea e select)
+			Object.values(inputValues).forEach(input => {
+				input.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter' && !e.shiftKey && input.tagName !== 'TEXTAREA' && input.tagName !== 'SELECT') {
+						e.preventDefault();
+						handleConfirm();
+					}
+				});
+			});
+		});
+	}
+	
+	function closeModal() {
+		const modal = document.getElementById('custom-modal');
+		if (modal) {
+			modal.hidden = true;
+			modal.style.display = 'none';
+			document.body.style.overflow = '';
+		}
+		currentModalResolve = null;
+	}
+	
+	// Garantir que o modal esteja oculto na inicialização
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', () => {
+			const modal = document.getElementById('custom-modal');
+			if (modal) {
+				modal.hidden = true;
+				modal.style.display = 'none';
+			}
+		});
+	} else {
+		const modal = document.getElementById('custom-modal');
+		if (modal) {
+			modal.hidden = true;
+			modal.style.display = 'none';
+		}
+	}
+	
 	// Iniciar
 	init();
 })();

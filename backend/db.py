@@ -83,16 +83,41 @@ def bulk_upsert_json(table: str, items: Iterable[Dict[str, Any]], id_key: str = 
 	"""
 	count = 0
 	ok_ids: List[str] = []
-	with get_connection() as conn:
-		for obj in items:
+	# Converter para lista para evitar problemas com iteráveis consumidos
+	items_list = list(items) if not isinstance(items, list) else items
+	print(f"[DB] Iniciando bulk_upsert_json para tabela '{table}' com {len(items_list)} itens")
+	conn = get_connection()
+	print(f"[DB] Conexão estabelecida com banco: {DB_PATH}")
+	try:
+		for obj in items_list:
 			if not isinstance(obj, dict):
+				print(f"[DB] Objeto ignorado (não é dict): {type(obj)}")
 				continue
 			obj_id = obj.get(id_key)
 			if not obj_id:
+				print(f"[DB] Objeto ignorado (sem {id_key}): {list(obj.keys())[:5] if obj else 'vazio'}")
 				continue
+			print(f"[DB] Salvando {table} id={obj_id}, nome={obj.get('name', 'N/A')[:30]}")
 			_upsert(conn, table, "id", str(obj_id), obj)
 			count += 1
 			ok_ids.append(str(obj_id))
+		print(f"[DB] Antes do commit: {count} itens processados")
+		conn.commit()  # Commit explícito
+		print(f"[DB] ✅ Commit realizado: {count} itens salvos em {table}")
+		
+		# Verificar se realmente salvou
+		cur = conn.cursor()
+		cur.execute(f"SELECT COUNT(*) FROM {table}")
+		total = cur.fetchone()[0]
+		print(f"[DB] Verificação: {total} itens na tabela {table} após commit")
+	except Exception as e:
+		conn.rollback()  # Rollback em caso de erro
+		print(f"[DB] ❌ Erro ao salvar: {e}")
+		import traceback
+		traceback.print_exc()
+		raise e
+	finally:
+		conn.close()
 	return count, ok_ids
 
 

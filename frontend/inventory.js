@@ -20,6 +20,7 @@
 	const itemDescription = document.getElementById('item-description');
 	const itemQuantity = document.getElementById('item-quantity');
 	const itemUnit = document.getElementById('item-unit');
+	const itemConsumption = document.getElementById('item-consumption');
 	const itemMinStock = document.getElementById('item-min-stock');
 	const itemPrice = document.getElementById('item-price');
 	const itemLocation = document.getElementById('item-location');
@@ -73,6 +74,7 @@
 			debounce(autoSave, 500)();
 		});
 		itemUnit?.addEventListener('input', debounce(autoSave, 500));
+		itemConsumption?.addEventListener('input', debounce(autoSave, 500));
 		itemMinStock?.addEventListener('input', () => {
 			updateStockAlert();
 			debounce(autoSave, 500)();
@@ -113,6 +115,7 @@
 			description: '',
 			quantity: 0,
 			unit: 'un',
+			consumption: 0,
 			minStock: 0,
 			price: 0,
 			location: '',
@@ -143,6 +146,7 @@
 		itemDescription.value = item.description || '';
 		itemQuantity.value = item.quantity;
 		itemUnit.value = item.unit || 'un';
+		itemConsumption.value = item.consumption || 0;
 		itemMinStock.value = item.minStock || 0;
 		itemPrice.value = item.price || 0;
 		itemLocation.value = item.location || '';
@@ -184,7 +188,7 @@
 		currentItemId = null;
 	}
 	
-	function saveCurrentItem() {
+	async function saveCurrentItem() {
 		if (!currentItemId) return;
 		
 		const item = items.find(i => i.id === currentItemId);
@@ -195,12 +199,46 @@
 		item.description = itemDescription.value.trim();
 		item.quantity = parseInt(itemQuantity.value) || 0;
 		item.unit = itemUnit.value.trim() || 'un';
+		item.consumption = parseFloat(itemConsumption.value) || 0;
 		item.minStock = parseInt(itemMinStock.value) || 0;
 		item.price = parseFloat(itemPrice.value) || 0;
 		item.location = itemLocation.value.trim();
 		item.supplier = itemSupplier.value.trim();
 		item.sku = itemSku.value.trim();
 		item.updatedAt = Date.now();
+		
+		// Salvar no localStorage primeiro
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+		} catch (e) {
+			console.error('Erro ao salvar no localStorage:', e);
+		}
+		
+		// Salvar diretamente no app.db
+		try {
+			const response = await fetch('/api/import/inventory', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ items: [item] })
+			});
+			
+			const responseText = await response.text();
+			let responseData;
+			try {
+				responseData = JSON.parse(responseText);
+			} catch (e) {
+				console.error('[Inventory] Erro ao parsear resposta:', e);
+				return;
+			}
+			
+			if (response.ok && responseData.ok !== false && responseData.count > 0) {
+				console.log(`[Inventory] ✅ Item ${item.id} salvo no app.db`);
+			} else {
+				console.error('[Inventory] Erro ao salvar no backend:', responseData);
+			}
+		} catch (e) {
+			console.error('[Inventory] Erro ao salvar item:', e);
+		}
 		
 		saveItems();
 		updateSummary(item);
@@ -219,6 +257,7 @@
 		item.description = itemDescription.value.trim();
 		item.quantity = parseInt(itemQuantity.value) || 0;
 		item.unit = itemUnit.value.trim() || 'un';
+		item.consumption = parseFloat(itemConsumption.value) || 0;
 		item.minStock = parseInt(itemMinStock.value) || 0;
 		item.price = parseFloat(itemPrice.value) || 0;
 		item.location = itemLocation.value.trim();

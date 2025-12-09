@@ -342,6 +342,8 @@
 				window.location.href = '/converter';
 			} else if (action === 'calculator') {
 				window.location.href = '/calculator';
+			} else if (action === 'library') {
+				window.location.href = '/library';
 			}
 		});
 	}
@@ -652,7 +654,7 @@
 	// Garantir que o cache seja limpo se o número de botões mudou
 	const wheelItems = document.querySelectorAll('.wheel-item');
 	console.log('[Wheel] Total de botões:', wheelItems.length);
-	const expectedActions = ['calibration', 'scanner', 'planner', 'sketch', 'projects', 'inventory', 'pcb', 'notes', 'converter', 'calculator'];
+	const expectedActions = ['calibration', 'scanner', 'planner', 'sketch', 'projects', 'inventory', 'pcb', 'notes', 'converter', 'calculator', 'library'];
 	const currentActions = Array.from(wheelItems).map(item => item.getAttribute('data-action'));
 	
 	wheelItems.forEach((item, idx) => {
@@ -672,6 +674,118 @@
 
 	// Aplicar itens ocultos no load
 	try { applyHidden(); compactVisibleSlots(); } catch {}
+	
+	// Widget de informações (hora, data, temperatura)
+	const currentTimeEl = document.getElementById('current-time');
+	const currentDateEl = document.getElementById('current-date');
+	const currentTempEl = document.getElementById('current-temp');
+	
+	function updateDateTime() {
+		if (!currentTimeEl || !currentDateEl) return;
+		
+		const now = new Date();
+		
+		// Formatar hora (HH:MM:SS)
+		const hours = String(now.getHours()).padStart(2, '0');
+		const minutes = String(now.getMinutes()).padStart(2, '0');
+		const seconds = String(now.getSeconds()).padStart(2, '0');
+		currentTimeEl.textContent = `${hours}:${minutes}:${seconds}`;
+		
+		// Formatar data (DD/MM/YYYY)
+		const day = String(now.getDate()).padStart(2, '0');
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const year = now.getFullYear();
+		const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+		const weekday = weekdays[now.getDay()];
+		currentDateEl.textContent = `${weekday}, ${day}/${month}/${year}`;
+	}
+	
+	async function updateTemperature() {
+		if (!currentTempEl) return;
+		
+		try {
+			// Tentar obter localização do usuário
+			if (navigator.geolocation) {
+				navigator.geolocation.getCurrentPosition(
+					async (position) => {
+						const lat = position.coords.latitude;
+						const lon = position.coords.longitude;
+						
+						// Usar Open-Meteo API (gratuita, sem necessidade de API key)
+						try {
+							const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`);
+							const data = await response.json();
+							if (data.current && data.current.temperature_2m !== undefined) {
+								currentTempEl.textContent = `${Math.round(data.current.temperature_2m)}°C`;
+							} else {
+								currentTempEl.textContent = '--°C';
+							}
+						} catch (error) {
+							console.error('Erro ao buscar temperatura:', error);
+							currentTempEl.textContent = '--°C';
+						}
+					},
+					(error) => {
+						console.error('Erro ao obter localização:', error);
+						currentTempEl.textContent = '--°C';
+					}
+				);
+			} else {
+				currentTempEl.textContent = '--°C';
+			}
+		} catch (error) {
+			console.error('Erro ao atualizar temperatura:', error);
+			currentTempEl.textContent = '--°C';
+		}
+	}
+	
+	// Atualizar hora e data a cada segundo
+	updateDateTime();
+	setInterval(updateDateTime, 1000);
+	
+	// Atualizar temperatura a cada 5 minutos
+	updateTemperature();
+	setInterval(updateTemperature, 300000); // 5 minutos
+	
+	// Botão de microfone
+	const micBtn = document.getElementById('mic-btn');
+	const recordingBorder = document.getElementById('recording-border');
+	let isRecording = false;
+	let mediaStream = null;
+	
+	if (micBtn) {
+		micBtn.addEventListener('click', async () => {
+			if (!isRecording) {
+				// Iniciar gravação
+				try {
+					mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+					micBtn.classList.add('active');
+					if (recordingBorder) {
+						recordingBorder.hidden = false;
+					}
+					isRecording = true;
+					// Aqui você pode adicionar lógica para processar o áudio
+					console.log('Gravação iniciada');
+				} catch (error) {
+					console.error('Erro ao acessar microfone:', error);
+					alert('Não foi possível acessar o microfone. Verifique as permissões.');
+				}
+			} else {
+				// Parar gravação
+				if (mediaStream) {
+					mediaStream.getTracks().forEach(track => track.stop());
+					mediaStream = null;
+				}
+				micBtn.classList.remove('active');
+				if (recordingBorder) {
+					recordingBorder.hidden = true;
+				}
+				isRecording = false;
+				console.log('Gravação parada');
+				// Aqui você pode adicionar lógica para processar o áudio gravado
+			}
+		});
+	}
 
 })(); 
 

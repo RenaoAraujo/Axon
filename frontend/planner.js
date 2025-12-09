@@ -58,6 +58,8 @@
 	const alertsBox = document.getElementById('planner-alerts');
 	const btnAddList = document.getElementById('btn-add-list');
 	const btnAddTable = document.getElementById('btn-add-table');
+	const btnSavePlanner = document.getElementById('btn-save-planner');
+	const btnExportPlanner = document.getElementById('btn-export-planner');
 	const btnReset = document.getElementById('btn-reset-board');
 	const tabs = document.querySelectorAll('.tab-btn[data-view]');
 	const views = document.querySelectorAll('.planner-view');
@@ -122,14 +124,24 @@
 		renderCalendarView();
 	});
 
-	btnAddTable?.addEventListener('click', () => {
-		const templateId = promptTableTemplate();
+	btnAddTable?.addEventListener('click', async () => {
+		const templateId = await promptTableTemplate();
 		const template = getTemplateConfig(templateId);
 		const count = state.blocks.filter((b) => b.type === 'table' && (b.template || DEFAULT_TABLE_TEMPLATE) === templateId).length + 1;
 		state.blocks.push(createTableBlock(`${template.label} ${count}`, templateId));
 		commit();
 	});
 
+	btnSavePlanner?.addEventListener('click', async () => {
+		await saveState();
+		console.log('[Planner] ✅ Planner salvo no app.db');
+		// Notificação pode ser adicionada aqui
+	});
+	
+	btnExportPlanner?.addEventListener('click', () => {
+		exportPlannerToTxt();
+	});
+	
 	btnReset?.addEventListener('click', () => {
 		if (!confirm('Deseja limpar todo o planner? Os dados locais serão perdidos.')) return;
 		state.blocks.forEach((block) => {
@@ -585,12 +597,63 @@
 		}
 	}
 
-	function saveState() {
+	async function saveState() {
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 		} catch {
 			// ignore quota issues
 		}
+		
+		// Salvar diretamente no app.db (state + eventos do calendário)
+		try {
+			const events = loadCalendarEvents();
+			const response = await fetch('/api/import/planner', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					state: state,
+					events: events
+				})
+			});
+			
+			const responseText = await response.text();
+			let responseData;
+			try {
+				responseData = JSON.parse(responseText);
+			} catch (e) {
+				console.error('[Planner] Erro ao parsear resposta:', e);
+				return;
+			}
+			
+			if (response.ok && responseData.ok !== false) {
+				console.log(`[Planner] ✅ Estado e ${responseData.events_count || 0} eventos salvos no app.db`);
+			} else {
+				console.error('[Planner] Erro ao salvar no backend:', responseData);
+			}
+		} catch (e) {
+			console.error('[Planner] Erro ao salvar planner:', e);
+		}
+	}
+	
+	function exportPlannerToTxt() {
+		// Coletar títulos de todos os blocos
+		const titles = state.blocks.map(block => block.title || 'Sem título').join('\n');
+		
+		// Criar conteúdo do arquivo TXT - apenas os títulos
+		const content = titles || 'Nenhum bloco no planner';
+		
+		// Criar blob e fazer download
+		const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `planner_${Date.now()}.txt`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+		
+		console.log('[Planner] ✅ Planner exportado como TXT');
 	}
 
 	function markInvalid(el) {
@@ -694,15 +757,44 @@
 		return LEGACY_COLUMN_LABELS[label] || LEGACY_COLUMN_LABELS[key] || fallback || null;
 	}
 
-	function promptTableTemplate() {
+	async function promptTableTemplate() {
 		const entries = Object.entries(TABLE_TEMPLATES);
+		if (entries.length === 0) return DEFAULT_TABLE_TEMPLATE;
+		if (entries.length === 1) return entries[0][0];
+		
 		const defaultId = entries[0]?.[0] || DEFAULT_TABLE_TEMPLATE;
-		const message = entries.map(([id, cfg], idx) => `${idx + 1} - ${cfg.label}`).join('\n');
-		const answer = (prompt(`Escolha o tipo de tabela:\n${message}`, '1') || '').trim().toLowerCase();
-		const index = Number(answer);
-		if (Number.isFinite(index) && entries[index - 1]) return entries[index - 1][0];
-		const match = entries.find(([id, cfg]) => id === answer || cfg.label.toLowerCase() === answer);
-		return match ? match[0] : defaultId;
+		
+		return new Promise((resolve) => {
+			showModal({
+				title: 'Escolher Tipo de Tabela',
+				message: 'Selecione o tipo de tabela:',
+				inputs: [
+					{ 
+						type: 'select', 
+						id: 'table-template', 
+						options: entries.map(([id, cfg]) => ({ value: id, label: cfg.label })),
+						required: true 
+					}
+				],
+				onConfirm: (values) => {
+					const selectedId = values['table-template'];
+					if (selectedId) {
+						resolve(selectedId);
+						return true;
+					}
+					resolve(defaultId);
+					return true;
+				}
+			}).then((values) => {
+				if (values && values['table-template']) {
+					resolve(values['table-template']);
+				} else {
+					resolve(defaultId);
+				}
+			}).catch(() => {
+				resolve(defaultId);
+			});
+		});
 	}
 
 	function seedState() {
@@ -1076,6 +1168,227 @@
 			changed = syncRowDeadline(block, row) || changed;
 		});
 		return changed;
+	}
+	
+	// ========== MODAL CUSTOMIZADO ==========
+	
+	let currentModalResolve = null;
+	
+	function showModal(config) {
+		const modal = document.getElementById('custom-modal');
+		const modalTitle = document.getElementById('modal-title');
+		const modalMessage = document.getElementById('modal-message');
+		const modalInputs = document.getElementById('modal-inputs');
+		const modalConfirm = document.getElementById('modal-confirm');
+		const modalCancel = document.getElementById('modal-cancel');
+		const modalClose = document.getElementById('modal-close');
+		
+		if (!modal) return Promise.resolve(null);
+		
+		// Configurar título e mensagem
+		modalTitle.textContent = config.title || 'Confirmação';
+		modalMessage.textContent = config.message || '';
+		modalMessage.style.display = config.message ? 'block' : 'none';
+		
+		// Limpar inputs anteriores
+		modalInputs.innerHTML = '';
+		
+		// Criar inputs
+		const inputValues = {};
+		if (config.inputs && config.inputs.length > 0) {
+			config.inputs.forEach(inputConfig => {
+				const inputGroup = document.createElement('div');
+				inputGroup.className = 'modal-input-group';
+				
+				if (inputConfig.type === 'select') {
+					const select = document.createElement('select');
+					select.id = inputConfig.id;
+					select.className = 'modal-input';
+					select.required = inputConfig.required || false;
+					
+					if (inputConfig.options && Array.isArray(inputConfig.options)) {
+						inputConfig.options.forEach(option => {
+							const optionEl = document.createElement('option');
+							optionEl.value = option.value;
+							optionEl.textContent = option.label || option.value;
+							select.appendChild(optionEl);
+						});
+					}
+					
+					inputGroup.appendChild(select);
+					inputValues[inputConfig.id] = select;
+				} else 				if (inputConfig.type === 'select') {
+					const select = document.createElement('select');
+					select.id = inputConfig.id;
+					select.className = 'modal-input';
+					select.required = inputConfig.required || false;
+					
+					if (inputConfig.options && Array.isArray(inputConfig.options)) {
+						inputConfig.options.forEach(option => {
+							const optionEl = document.createElement('option');
+							optionEl.value = option.value;
+							optionEl.textContent = option.label || option.value;
+							select.appendChild(optionEl);
+						});
+					}
+					
+					inputGroup.appendChild(select);
+					inputValues[inputConfig.id] = select;
+				} else if (inputConfig.type === 'textarea') {
+					const textarea = document.createElement('textarea');
+					textarea.id = inputConfig.id;
+					textarea.placeholder = inputConfig.placeholder || '';
+					textarea.required = inputConfig.required || false;
+					textarea.className = 'modal-input';
+					textarea.rows = 3;
+					inputGroup.appendChild(textarea);
+					inputValues[inputConfig.id] = textarea;
+				} else {
+					const input = document.createElement('input');
+					input.type = inputConfig.type || 'text';
+					input.id = inputConfig.id;
+					input.placeholder = inputConfig.placeholder || '';
+					input.required = inputConfig.required || false;
+					input.className = 'modal-input';
+					inputGroup.appendChild(input);
+					inputValues[inputConfig.id] = input;
+				}
+				
+				modalInputs.appendChild(inputGroup);
+			});
+		}
+		
+		// Mostrar modal
+		modal.hidden = false;
+		modal.style.display = 'flex';
+		document.body.style.overflow = 'hidden';
+		
+		// Focar no primeiro input
+		if (config.inputs && config.inputs.length > 0) {
+			setTimeout(() => {
+				const firstInput = document.getElementById(config.inputs[0].id);
+				if (firstInput) firstInput.focus();
+			}, 100);
+		}
+		
+		// Retornar Promise
+		return new Promise((resolve) => {
+			currentModalResolve = resolve;
+			
+			const handleConfirm = () => {
+				// Coletar valores dos inputs
+				const values = {};
+				Object.keys(inputValues).forEach(key => {
+					const input = inputValues[key];
+					values[key] = input.value;
+				});
+				
+				// Chamar callback de confirmação
+				if (config.onConfirm) {
+					const result = config.onConfirm(values);
+					if (result !== false) {
+						closeModal();
+						resolve(values);
+					}
+				} else {
+					closeModal();
+					resolve(values);
+				}
+			};
+			
+			const handleCancel = () => {
+				closeModal();
+				resolve(null);
+			};
+			
+			// Remover listeners anteriores
+			const newConfirm = modalConfirm.cloneNode(true);
+			modalConfirm.parentNode.replaceChild(newConfirm, modalConfirm);
+			const newCancel = modalCancel.cloneNode(true);
+			modalCancel.parentNode.replaceChild(newCancel, modalCancel);
+			const newClose = modalClose.cloneNode(true);
+			modalClose.parentNode.replaceChild(newClose, modalClose);
+			
+			// Adicionar novos listeners
+			document.getElementById('modal-confirm').addEventListener('click', handleConfirm);
+			document.getElementById('modal-cancel').addEventListener('click', handleCancel);
+			document.getElementById('modal-close').addEventListener('click', handleCancel);
+			
+			// Fechar ao clicar no overlay
+			const overlay = document.querySelector('.modal-overlay');
+			if (overlay) {
+				const newOverlay = overlay.cloneNode(true);
+				overlay.parentNode.replaceChild(newOverlay, overlay);
+				newOverlay.addEventListener('click', handleCancel);
+			}
+			
+			// Fechar com ESC
+			const handleEsc = (e) => {
+				if (e.key === 'Escape') {
+					handleCancel();
+					document.removeEventListener('keydown', handleEsc);
+				}
+			};
+			document.addEventListener('keydown', handleEsc);
+			
+			// Enter no input confirma
+			Object.values(inputValues).forEach(input => {
+				input.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter' && !e.shiftKey && input.tagName !== 'TEXTAREA' && input.tagName !== 'SELECT') {
+						e.preventDefault();
+						handleConfirm();
+					}
+				});
+			});
+		});
+	}
+	
+	function closeModal() {
+		const modal = document.getElementById('custom-modal');
+		if (modal) {
+			modal.hidden = true;
+			modal.style.display = 'none';
+			document.body.style.overflow = '';
+		}
+		currentModalResolve = null;
+	}
+	
+	// Garantir que o modal esteja oculto na inicialização
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', () => {
+			const modal = document.getElementById('custom-modal');
+			if (modal) {
+				modal.hidden = true;
+				modal.style.display = 'none';
+			}
+		});
+	} else {
+		const modal = document.getElementById('custom-modal');
+		if (modal) {
+			modal.hidden = true;
+			modal.style.display = 'none';
+		}
+	}
+	
+	function exportPlannerToTxt() {
+		// Coletar títulos de todos os blocos
+		const titles = state.blocks.map(block => block.title || 'Sem título').join('\n');
+		
+		// Criar conteúdo do arquivo TXT - apenas os títulos
+		const content = titles || 'Nenhum bloco no planner';
+		
+		// Criar blob e fazer download
+		const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `planner_${Date.now()}.txt`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+		
+		console.log('[Planner] ✅ Planner exportado como TXT');
 	}
 })();
 

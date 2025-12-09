@@ -156,6 +156,7 @@
 				<button class="tab-btn active" data-tab="overview">📊 Overview</button>
 				<button class="tab-btn" data-tab="tasks">✅ Tarefas</button>
 				<button class="tab-btn" data-tab="materials">🔧 Materiais</button>
+				<button class="tab-btn" data-tab="pricing">💰 Precificação</button>
 				<button class="tab-btn" data-tab="files">📁 Arquivos</button>
 				<button class="tab-btn" data-tab="logs">📝 Logs</button>
 				<button class="tab-btn" data-tab="versions">🔄 Versões</button>
@@ -247,6 +248,47 @@
 					</div>
 				</div>
 
+				<!-- TAB: PRECIFICAÇÃO -->
+				<div class="tab-content" id="tab-pricing" hidden>
+					<div class="pricing-header">
+						<div class="pricing-form">
+							<h3>Adicionar Despesa</h3>
+							<div class="pricing-form-grid">
+								<input type="text" id="expense-description" placeholder="Descrição da despesa" />
+								<input type="number" id="expense-value" min="0" step="0.01" placeholder="Valor (R$)" />
+								<input type="text" id="expense-category" placeholder="Categoria (ex: Material, Mão de obra, etc.)" />
+								<input type="date" id="expense-date" />
+								<div class="pricing-actions">
+									<button type="button" class="projects-btn" id="btn-add-expense">Adicionar</button>
+									<button type="button" class="projects-btn" id="btn-clear-expense">Limpar</button>
+								</div>
+							</div>
+						</div>
+						<div class="pricing-summary">
+							<div class="summary-card">
+								<h4>Total de Despesas</h4>
+								<div class="summary-value" id="total-expenses">R$ 0,00</div>
+							</div>
+						</div>
+					</div>
+					<div class="pricing-table-container">
+						<table class="pricing-table">
+							<thead>
+								<tr>
+									<th>Descrição</th>
+									<th>Valor</th>
+									<th>Categoria</th>
+									<th>Data</th>
+									<th>Ações</th>
+								</tr>
+							</thead>
+							<tbody id="expenses-list">
+								<!-- Despesas aqui -->
+							</tbody>
+						</table>
+					</div>
+				</div>
+
 				<!-- TAB: ARQUIVOS -->
 				<div class="tab-content" id="tab-files" hidden>
 					<div class="files-header">
@@ -299,6 +341,25 @@
 	</main>
 
 	<script defer src="/static/projects.js"></script>
+	
+	<!-- Modal Customizado -->
+	<div id="custom-modal" class="custom-modal" hidden>
+		<div class="modal-overlay"></div>
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3 class="modal-title" id="modal-title">Título</h3>
+				<button class="modal-close" id="modal-close" aria-label="Fechar">×</button>
+			</div>
+			<div class="modal-body">
+				<div id="modal-message" class="modal-message"></div>
+				<div id="modal-inputs" class="modal-inputs"></div>
+			</div>
+			<div class="modal-footer">
+				<button class="modal-btn modal-btn-secondary" id="modal-cancel">Cancelar</button>
+				<button class="modal-btn modal-btn-primary" id="modal-confirm">Confirmar</button>
+			</div>
+		</div>
+	</div>
 </body>
 </html>
 
